@@ -2,6 +2,17 @@
 //  Program to extract Nodal equations from Spice Netlist.  Ed Chan
 
 #include "parser_sjt.h"
+// 判断有无电压源
+Boolean isHaveVSource(Connections *conList, int &id) {
+    while(conList != NULL) {
+        if(conList->comp->getType() == VSource){
+            id = conList->comp->getcompNum();
+            return TRUE;
+        }
+        conList = conList->next;
+    }
+    return FALSE;
+}
 
 void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step) {
     string outFile_name;
@@ -72,10 +83,28 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
     nodePtr1 = nodeList.getNode(0);
     while(nodePtr1 != NULL) {
         if(nodePtr1->getNameNum() != datum) {
+            int VSourceID = NA;
+            if(isHaveVSource(nodePtr1->getConList(), VSourceID)) { // 若有电压源，则单独处理
+                int nodeID = VSourceID + lastnode;
+                nodePtr2 = nodeList.getNode(0);
+                while(nodePtr2 != NULL) {
+                    if(nodePtr2->getNameNum() != datum) {
+                        double temp = JAC[nodePtr1->getNameNum()][nodePtr2->getNameNum()];
+                        outFile << "JAC(" << nodeID << "," << nodePtr2->getNameNum() << ") =";
+                        nodePtr1->genMNAJAC(outFile, JAC, X, nodePtr2->getNameNum(), datum, lastnode);
+                        outFile << endl;
+                        JAC[nodeID][nodePtr2->getNameNum()] += JAC[nodePtr1->getNameNum()][nodePtr2->getNameNum()] - temp;
+                        JAC[nodePtr1->getNameNum()][nodePtr2->getNameNum()] = temp;
+                    }
+                    nodePtr2 = nodePtr2->getNext();
+                }
+                JAC[nodeID][nodeID] = 1;
+                outFile << "JAC(" << nodeID << "," << nodeID << ") = 1" << endl;
+            }
             nodePtr2 = nodeList.getNode(0);
             while(nodePtr2 != NULL) {
                 if(nodePtr2->getNameNum() != datum)
-                    nodePtr1->genNodalJAC(outFile, JAC, X, nodePtr2, datum, lastnode);
+                    nodePtr1->genNodalJAC(outFile, JAC, X, nodePtr2->getNameNum(), datum, lastnode);
                 nodePtr2 = nodePtr2->getNext();
             }
         }
@@ -151,6 +180,7 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     inFile.getline(buf, BufLength);
 
     // 4.1 模型遍历识别，并入链
+    cout << "=======================Models scan has started=====================";
     while (inFile.good()) {
         if ((buf == NULL) || (*buf == '\0')) {
             inFile.getline(buf, BufLength);
@@ -196,6 +226,7 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     inFile.open(inFileName, ios::in); //现在开始扫描处理其他的信息
 
     // 4.2 器件遍历扫描，并入链
+    cout << "=======================Components scan has started=====================";
     char model_str[9];
     inFile.getline(buf, BufLength); 
     inFile.getline(buf, BufLength);
@@ -314,6 +345,10 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     inFile.close();
     inFile.clear();
 
+    cout << endl
+         << "=============The contents of the netlist have been scanned================" << endl
+         << endl;
+
     /************************************************************/
     /** 对于起始节点编号的确定是一个问题。常见的是接地点为0号节点， **/
     /** 也即为第一个节点。但似乎有约定是第一个源的第二个端口所连节  **/
@@ -321,6 +356,7 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     /************************************************************/
 
     // 4.3 依据器件链表，进行节点遍历扫描，节点成链并与器件建立联系
+    cout << "=====================The node generation process has started=====================" << endl;
     compPtr1 = compList.getComp(0);
     while (compPtr1 != NULL) {
         for (int b = 0; b < 3; b++) {
@@ -858,14 +894,14 @@ void Component::genJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<do
             JAC[nameNum1][nameNum2] -= (-1.0 * 1e-16) * (-38.78) * exp(38.78 * (X[con0.node->getNameNum()] - X[con1.node->getNameNum()]));
             outFile << " - IS * N * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
         }
         else if ((con2.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con2.node->getNameNum() == nameNum2)) {
             JAC[nameNum1][nameNum2] += (-1.0 * 1e-16) * (-38.78) / 0.99 * exp(38.78 * (X[con2.node->getNameNum()] - X[con1.node->getNameNum()]));
-            outFile << "IS * N / af * exp( - N * ( ";
+            outFile << " + IS * N / af * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
                 outFile << "x(" << con2.node->getNameNum() << ')';
             if (con1.node->getNameNum() != datum)
@@ -878,16 +914,16 @@ void Component::genJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<do
             JAC[nameNum1][nameNum2] += temp2 - temp1;
             outFile << " - IS * N / af * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
-                outFile << "x(" << con2.node->getNameNum() << ')';
+                outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << "-x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
             outFile << " + ";
             outFile << "IS * N * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con0.node->getNameNum() == nameNum2)) {
@@ -896,14 +932,16 @@ void Component::genJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<do
             JAC[nameNum1][nameNum2] += temp1 - temp2;
             outFile << " + IS * N * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
-            outFile << " + IS * N / ar * exp( - N * ( ";
+                outFile << " - x(" << con1.node->getNameNum() << ")";
+            outFile << " ) )";
+            outFile << " - ";
+            outFile << "IS * N / ar * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) ) ";
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con2.node->getNameNum() == nameNum2)) {
@@ -912,16 +950,16 @@ void Component::genJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<do
             JAC[nameNum1][nameNum2] += temp2 - temp1;
             outFile << " + IS * N * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
-                outFile << "x(" << con2.node->getNameNum() << ')';
+                outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N / af * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
-                outFile << "x(" << con2.node->getNameNum() << ')';
+                outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con1.node->getNameNum() == nameNum2)) {
@@ -932,30 +970,30 @@ void Component::genJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<do
             JAC[nameNum1][nameNum2] += temp1 - temp2 - temp3 + temp4;
             outFile << " + IS * N / af * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
-                outFile << "x(" << con2.node->getNameNum() << ')';
+                outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << "-x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N * exp( - N * ( ";
             if (con2.node->getNameNum() != datum)
-                outFile << "x(" << con2.node->getNameNum() << ')';
+                outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
             outFile << " + ";
             outFile << "IS * N / ar * exp( - N * ( ";
             if (con0.node->getNameNum() != datum)
-                outFile << "x(" << con0.node->getNameNum() << ')';
+                outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
-                outFile << " - x(" << con1.node->getNameNum() << ')';
+                outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) ) ";
         }
         // TODO：其他情况的处理
@@ -1167,59 +1205,52 @@ void Node::genNodalEquation(ofstream &outFile, vector<double> &F_x, vector<doubl
 }
 
 /*
+ * 生成改进节点分析法方程的雅可比矩阵
+ * @param outFile 输出文件流
+ * @param JAC F_x的雅可比矩阵
+ * @param X 未知变量向量
+ * @param nameNum2 二维节点编号
+ * @param datum 接地节点编号
+ * @param lastnode 最大节点编号
+ */
+void Node::genMNAJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum2, int datum, int lastnode) {
+    Connections *conList = getConList();
+    while(conList != NULL){
+        if(conList->comp->getType() != VSource){
+            conList->comp->genJAC(outFile, JAC, X, nameNum, nameNum2, datum, lastnode);
+        }
+        conList = conList->next;
+    }
+}
+
+/*
  * 生成节点分析法方程的雅可比矩阵
  * @param outFile 输出文件流
  * @param JAC F_x的雅可比矩阵
  * @param X 未知变量向量
- * @param nodePtr2 二维节点指针
+ * @param nameNum2 二维节点编号
  * @param datum 接地节点编号
  * @param lastnode 最大节点编号
  */
-void Node::genNodalJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, Node *nodePtr2, int datum, int lastnode) {
-    Connections *conList = getConList();
-    Boolean isHaveVSource = FALSE;
+void Node::genNodalJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum2, int datum, int lastnode) {
     int VSourceID = NA;
-    while(conList != NULL) {
-        if(conList->comp->getType() == VSource){
-            isHaveVSource = TRUE;
-            VSourceID = conList->comp->getcompNum();
-            break;
-        }
-        conList = conList->next;
-    }
-    if(isHaveVSource == TRUE) {
-        // KVL 方程求导处理
-        // assert：假定除接地节点外，每个节点只能接一个电压源
-        // TODO：处理节点接多电压源的情况
+    if(isHaveVSource(getConList(), VSourceID)) {
         conList = getConList();
-        outFile << "JAC(" << nameNum << "," << nodePtr2->getNameNum() << ") = ";
+        outFile << "JAC(" << nameNum << "," << nameNum2 << ") = ";
         while(conList != NULL) {
             if(conList->comp->getType() == VSource) { // KVL
-                conList->comp->genJAC(outFile, JAC, X, nameNum, nodePtr2->getNameNum(), datum, lastnode);
+                conList->comp->genJAC(outFile, JAC, X, nameNum, nameNum2, datum, lastnode);
                 outFile << endl;
                 break;
             }
             conList = conList->next;
         }
-        // 补偿方程处理
-        conList = getConList();
-        double temp = JAC[nameNum][nodePtr2->getNameNum()];
-        outFile << "JAC(" << lastnode + VSourceID << "," << nodePtr2->getNameNum() << ") = ";
-        while(conList != NULL) {
-            if(conList->comp->getType() != VSource) {
-                conList->comp->genJAC(outFile, JAC, X, nameNum, nodePtr2->getNameNum(), datum, lastnode);
-            }
-            conList = conList->next;
-        }
-        JAC[lastnode + VSourceID][nodePtr2->getNameNum()] += JAC[nameNum][nodePtr2->getNameNum()] - temp;
-        JAC[nameNum][nodePtr2->getNameNum()] = temp;
-        outFile << endl;
     } else {
         // 没有电压源的情况
         Connections *conList = getConList();
-        outFile << "JAC(" << nameNum << "," << nodePtr2->getNameNum() << ") = ";
+        outFile << "JAC(" << nameNum << "," << nameNum2 << ") = ";
         while(conList != NULL){
-            conList->comp->genJAC(outFile, JAC, X, nameNum, nodePtr2->getNameNum(), datum, lastnode);
+            conList->comp->genJAC(outFile, JAC, X, nameNum, nameNum2, datum, lastnode);
             conList = conList->next;
         }
         outFile<<endl;

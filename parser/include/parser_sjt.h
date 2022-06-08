@@ -13,7 +13,7 @@ using namespace std;
 // declarations:
 const double K = 1.38E-23;
 const double Q = 1.60E-19;
-const int NameLength = 80, BufLength = 300, NA = -1;
+const int NameLength = 80, BufLength = 3000, NA = -1;
 
 enum CompType {// 器件类型
     MOSFET,
@@ -113,7 +113,8 @@ public:
 
     void printMessage(ofstream &outFile);
     void genNodalEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode);
-    void genNodalJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, Node *nodePtr2, int datum, int lastnode);
+    void genNodalJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum2, int datum, int lastnode);
+    void genMNAJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum2, int datum, int lastnode);
     
 private:
     Node *next; // 自身预留接口，以成链

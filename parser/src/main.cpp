@@ -97,21 +97,21 @@ int main(int argc, char** argv) {
         for (int i = 0; i < ITERATIONNUMS; i++) {
             cout << "=================the beginning of" << step << "th iteration======================" << endl;
             generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step);
-            
-            for(int i=0;i<total;i++){
-                for(int j=0;j<total;j++)
-                    cout<<"J("<<i<<","<<j<<") = "<<JAC[i][j]<<" ";
-                cout<<endl;
+
+            for (int i = 0; i < total; i++) {
+                for (int j = 0; j < total; j++)
+                    cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
+                cout << endl;
             }
-            
+
             LU_decomposition(JAC);
 
-            cout<<"==================================================";
+            cout << "==================================================" << endl;
 
-            for(int i=0;i<total;i++){
-                for(int j=0;j<total;j++)
-                    cout<<"J("<<i<<","<<j<<") = "<<JAC[i][j]<<" ";
-                cout<<endl;
+            for (int i = 0; i < total; i++) {
+                for (int j = 0; j < total; j++)
+                    cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
+                cout << endl;
             }
 
             // 开始牛顿法迭代计算
