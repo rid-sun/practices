@@ -957,12 +957,12 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
 
     case VSource:
         // 因为这边是只考虑KCL方程的，所以需要对nameNum2做一个转变【即这里是对未知电流变量求导】
-        if (((con0.node->getNameNum() == nameNum1) && (con1.node->getNameNum() == nameNum2))) {
-            JAC[nameNum1][lastnode + getcompNum()] += 1;
+        if (((con0.node->getNameNum() == actualName) && (con1.node->getNameNum() == nameNum2))) {
+            JAC[actualName][lastnode + getcompNum()] += 1;
             outFile << " + 1";
         }
-        else if((con1.node->getNameNum() == nameNum1) && (con0.node->getNameNum() == nameNum2)) {
-            JAC[nameNum1][lastnode + getcompNum()] -= 1;
+        else if((con1.node->getNameNum() == actualName) && (con0.node->getNameNum() == nameNum2)) {
+            JAC[actualName][lastnode + getcompNum()] -= 1;
             outFile << " - 1";
         }
         break;
