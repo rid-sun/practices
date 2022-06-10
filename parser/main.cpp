@@ -8,7 +8,7 @@
 using namespace std;
 
 // 分析求解相关
-vector<double> F_X, X, errorGap, X_n;
+vector<double> F_X, X, X_n;
 vector<vector<double>> JAC;
 NodeHead nodeList;
 CompHead compList;
@@ -51,12 +51,10 @@ int main(int argc, char** argv) {
         F_X.resize(total);
         X_n.resize(total);
         JAC.resize(total);
-        errorGap.resize(total);
         random_device rd;
         default_random_engine engine(rd());
         uniform_int_distribution<int> distr(RANDOM_MIN, RANDOM_MAX);
-        for (int i = 0; i < errorGap.size();i++){
-            errorGap[i] = ERRORGAP; // 设定误差大小
+        for (int i = 0; i < total;i++){
             X[i] = distr(engine) * 1.0 / 1000000; // 给X变量赋初值，随机选取初值
         }
         fill(F_X.begin(), F_X.end(), 0);
@@ -95,41 +93,74 @@ int main(int argc, char** argv) {
 
         // 迭代开始
         for (int i = 0; i < ITERATIONNUMS; i++) {
-            cout << "=================the beginning of " << step << "th iteration======================" << endl;
+            cout << "===================the beginning of " << step << "th iteration=========================" << endl;
+            
+            // for (int i = 0; i < total;i++){
+            //     if(i == datum) continue;
+            //     cout << "X[" << i << "] = " << X[i] << "      ";
+            // }
+            // cout << endl;
+
             generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step);
 
-            for (int i = 0; i < total; i++) {
-                for (int j = 0; j < total; j++)
-                    cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
-                cout << endl;
+            // for (int i = 0; i < total; i++) {
+            //     for (int j = 0; j < total; j++)
+            //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
+            //     cout << endl;
+            // }
+
+            vector<vector<double>> tJAC(total - 1, vector<double>(total - 1, 0));
+            for (int u = 0, x = 0; u < total; u++) {
+                if(u == datum) continue;
+                for (int w = 0, y = 0; w < total;w++) {
+                    if(w == datum) continue;
+                    tJAC[x][y++] = JAC[u][w];
+                }
+                x++;
             }
 
-            LU_decomposition(JAC);
+            // for (int i = 0; i < total - 1; i++) {
+            //     for (int j = 0; j < total - 1; j++)
+            //         cout << "tJ(" << i << "," << j << ") = " << tJAC[i][j] << " ";
+            //     cout << endl;
+            // }
 
-            cout << "==================================================" << endl;
+            GetMatrixInverse(tJAC);
+            // LU_decomposition(tJAC);
 
-            for (int i = 0; i < total; i++) {
-                for (int j = 0; j < total; j++)
-                    cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
-                cout << endl;
-            }
+            cout << endl
+                 << "==========================================================================" << endl;
+
+            // for (int i = 0; i < total - 1; i++) {
+            //     for (int j = 0; j < total - 1; j++)
+            //         cout << "tJ(" << i << "," << j << ") = " << tJAC[i][j] << " ";
+            //     cout << endl;
+            // }
+
+            // for (int i = 0; i < total;i++){
+            //     if(i == datum) continue;
+            //     cout << "X[" << i << "] = " << X[i] << "      ";
+            // }
+            // cout << endl;
 
             // 开始牛顿法迭代计算
-            for (int h = 0; h < total;h++) {
+            for (int h = 0, x = 0; h < total;h++) {
                 if(h == datum) continue;
                 double temp = 0;
-                for (int k = 0; k < total;k++){
+                for (int k = 0, y = 0; k < total;k++){
                     if(k == datum) continue;
-                    temp += JAC[h][k] * F_X[k];
-                    cout<<"temp: "<<temp<<endl;
+                    temp += tJAC[x][y++] * F_X[k];
+                    cout << temp << " ";
                 }
                 X_n[h] = X[h] - temp;
+                x++;
             }
+            cout << endl;
 
             Boolean isCorrect = TRUE;
             for (int j = 0; j < total;j++) {
                 if(j == datum) continue;
-                if(abs(X[j] - X_n[j]) > errorGap[j]){
+                if(abs(X[j] - X_n[j]) > ERRORGAP){
                     isCorrect = FALSE;
                 }
                 X[j] = X_n[j];
@@ -139,6 +170,11 @@ int main(int argc, char** argv) {
                 break;
             }
             step++;
+            // 重置为0
+            for (int j = 0; j < total;j++){
+                fill(JAC[j].begin(), JAC[j].end(), 0);
+                F_X[j] = 0;
+            }
         }
         if(isSuccess == TRUE) {
             cout << "=======In the "<< step <<"th iteration, the solution is successful==============" << endl;
