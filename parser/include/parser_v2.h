@@ -13,6 +13,7 @@ using namespace std;
 // declarations:
 const double K = 1.38E-23;
 const double Q = 1.60E-19;
+const double N = 38.78;
 const int NameLength = 80, BufLength = 3000, NA = -1;
 
 enum CompType {// 器件类型
@@ -132,14 +133,17 @@ public:
     TranType getType();
     char *getName();
     double getIs();
+    double getAf();
+    double getAr();
     double getBf();
     double getBr();
     double getTemp();
+    double getN();
     void setNext(Model *nextIn);
     
 private:
     char name[NameLength]; // 模型名称
-    double is, bf, br, temp; // 模型参数
+    double is, af, ar, temp, br, bf; // 模型参数
     Model *next; // 自身预留接口，以便成链
     TranType type; // 模型类型
 };
@@ -185,3 +189,13 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
 void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, int &datum, int &lastnode, string &inFileName, string &outFileName);
 
 double stripString(char *stringIn);
+
+double calculateFe(vector<double> &X, double Is, double af, double n, int con1, int con2, int datum);
+
+double calculateFc(vector<double> &X, double Is, double ar, double n, int con1, int con2, int datum);
+
+double calculateFe_(vector<double> &X, double Is, double af, double n, int con1, int con2, int datum, int nameNum2);
+
+double calculateFc_(vector<double> &X, double Is, double ar, double n, int con1, int con2, int datum, int nameNum2);
+
+pair<int, int> getVSourceID(Connections *conList);
