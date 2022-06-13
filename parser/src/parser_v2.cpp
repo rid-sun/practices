@@ -18,19 +18,19 @@
  */
 void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step) {
     vector<int> MNANodeSet1, MNANodeSet2; // 用来存储那些补偿方程的编号，比如x5-vcc是F(5)，x5-x2-v1是F(5)
-    string outFile_name;
     ofstream outFile;
     Node *nodePtr, *nodePtr1, *nodePtr2;
     Component *comp;
 
-    // 打开输出文件流
-    outFile_name = (outFileName + "_equation") + to_string(step);
-    outFile.open(outFile_name + ".txt", ios::out);
-    if(!outFile){
-        cerr << "打开文件出现错误，异常退出！" << endl;
-        exit(1);
+    // 打开输出文件流 【如果step不为1，那么就不去打开了】
+    if(step == 1) {
+        outFile.open(outFileName + "_equation.txt", ios::out);
+        if(!outFile){
+            cerr << "打开文件出现错误，异常退出！" << endl;
+            exit(1);
+        }
     }
-
+   
     // 1. 扫描器件链表，若有电压源存在，则列KVL方程 且 记录MNA节点编号
     comp = compList.getComp(0);
     while(comp != NULL) {
@@ -57,12 +57,13 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
     outFile.close();
     outFile.clear();
 
-    // 打开输出文件流
-    outFile_name = (outFileName + "_jacobian") + to_string(step);
-    outFile.open(outFile_name + ".txt", ios::out);
-    if(!outFile){
-        cerr << "打开文件出现错误，异常退出！" << endl;
-        exit(1);
+    // 打开输出文件流 【如果step不为1，那么就不去打开了】
+    if(step == 1) {
+        outFile.open(outFileName + "_jacobian.txt", ios::out);
+        if(!outFile){
+            cerr << "打开文件出现错误，异常退出！" << endl;
+            exit(1);
+        }
     }
 
     // 3. 生成上面求得方程的雅可比矩阵
@@ -456,7 +457,7 @@ double calculateFe(vector<double> &X, double Is, double af, double n, int con2, 
     else if (con2 != datum && con1 == datum)
         return (-Is) / af * (exp(-n * X[con2]) - 1);
     else if (con2 == datum && con1 != datum)
-        return (-Is) / af * (exp(-n * (-X[con1])) - 1);
+        return (-Is) / af * (exp(n * X[con1]) - 1);
     else
         return 0;
 }
@@ -468,7 +469,7 @@ double calculateFc(vector<double> &X, double Is, double ar, double n, int con0, 
     else if (con0 != datum && con1 == datum)
         return (-Is) / ar * (exp(-n * X[con0]) - 1);
     else if (con0 == datum && con1 != datum)
-        return (-Is) / ar * (exp(-n * (-X[con1])) - 1);
+        return (-Is) / ar * (exp(n * X[con1]) - 1);
     else
         return 0;
 }
@@ -478,13 +479,12 @@ double calculateFe_(vector<double> &X, double Is, double af, double n, int con2,
     double temp = 0;
     if (con2 != datum && con1 != datum) {
         temp = (-Is) * (-n) / af * exp(-n * (X[con2] - X[con1]));
-        temp = (nameNum2 == con1 ? (-temp) : temp);
+        temp = nameNum2 == con1 ? (-temp) : temp;
     }
     else if (con2 != datum && con1 == datum)
         temp = (-Is) * (-n) / af * exp(-n * X[con2]);
-        
     else if (con2 == datum && con1 != datum)
-        temp = (-Is) * n / af * exp(-n * (-X[con1])) - 1;
+        temp = (-Is) * n / af * exp(n * X[con1]);
     return temp;
 }
 
@@ -493,13 +493,12 @@ double calculateFc_(vector<double> &X, double Is, double ar, double n, int con0,
     double temp = 0;
     if (con0 != datum && con1 != datum) {
         temp = (-Is) * (-n) / ar * exp(-n * (X[con0] - X[con1]));
-        temp = (nameNum2 == con1 ? (-temp) : temp);
+        temp = nameNum2 == con1 ? (-temp) : temp;
     }
     else if (con0 != datum && con1 == datum)
-        temp = (-Is) * (-n) / ar * exp(-n * X[con0]) - 1;
-        
+        temp = (-Is) * (-n) / ar * exp(-n * X[con0]);    
     else if (con0 == datum && con1 != datum)
-        temp = (-Is) * n / ar * exp(-n * (-X[con1])) - 1;
+        temp = (-Is) * n / ar * exp(n * X[con1]);
     return temp;
 }
 
@@ -675,7 +674,7 @@ void Component::printMessage(ofstream &outFile, int conNum){
         outFile << "        编号：" << getcompNum() << "    类型："
                 << "BJT"
                 << " 连接端口：" << conNum << "    名称：" << name << endl;
-        outFile << "        value: IS = " << model->getIs() << "  BF = " << model->getBf() << "  BR = " << model->getBr() << "  N = " << (Q / (K * model->getTemp())) << endl;
+        outFile << "        value: IS = " << model->getIs() << "  AF = " << model->getAf() << "  AR = " << model->getAr() << "  N = " << model->getN() << endl;
         break;
     case VSource:
         outFile << "        编号：" << getcompNum() << "    类型："
@@ -711,7 +710,7 @@ void Component::printMessage(ofstream &outFile, int conNum){
  * @param MNAName 记录未知电流变量编号
  */
 void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, int nameNum, int MNAName) {
-    int actualName = MNAName == -1 ? nameNum : MNAName;
+    int actualName = MNAName == NA ? nameNum : MNAName;
     switch (type) {
     case MOSFET:
         //这里存疑？是否MOSFET与BJT是一个特性的东西
@@ -731,7 +730,7 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
             F_x[actualName] -= fc - af * fe + fe - ar * fc;
             outFile << " - " << name << "_Ie"
                     << " - " << name << "_Ic";
-        }   
+        }
     }
         // TODO: 其他情况是知识完善后，再做补充处理
         break;
@@ -871,7 +870,7 @@ int Component::genKVLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<
  * @param MNAName 记录未知电流变量编号
  */
 void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum1, int nameNum2, int datum, int lastnode, int MNAName) {
-    int actualName = MNAName == -1 ? nameNum1 : MNAName;
+    int actualName = MNAName == NA ? nameNum1 : MNAName;
     switch (type) {
     case MOSFET:
         std::cout << "genJAC for MOSFETs not implemented" << std::endl
@@ -1562,7 +1561,7 @@ Component *CompHead::getComp(int compNum) {
 
 Model::Model(char *nameIn, TranType typeIn, double isIn, double bfIn, double brIn, double tempIn) {
     // 由于网表参数的正负值问题，可能会出现结果的错误。
-    // 本次设计是
+    // 本次设计是ishen为负值
     strcpy(name, nameIn);
     type = typeIn;
     is = isIn;

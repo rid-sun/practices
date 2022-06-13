@@ -114,7 +114,8 @@ int main(int argc, char** argv) {
                 if(u == datum) continue;
                 for (int w = 0, y = 0; w < total;w++) {
                     if(w == datum) continue;
-                    tJAC[x][y++] = JAC[u][w];
+                    tJAC[x][y] = JAC[u][w];
+                    y++;
                 }
                 x++;
             }
@@ -125,8 +126,8 @@ int main(int argc, char** argv) {
             //     cout << endl;
             // }
 
-            GetMatrixInverse(tJAC);
-            // LU_decomposition(tJAC);
+            // GetMatrixInverse(tJAC);
+            LU_decomposition(tJAC);
 
             cout << endl
                  << "==========================================================================" << endl;
@@ -149,8 +150,8 @@ int main(int argc, char** argv) {
                 double temp = 0;
                 for (int k = 0, y = 0; k < total;k++){
                     if(k == datum) continue;
-                    temp += tJAC[x][y++] * F_X[k];
-                    cout << temp << " ";
+                    temp += tJAC[x][y] * F_X[k];
+                    y++;
                 }
                 X_n[h] = X[h] - temp;
                 x++;

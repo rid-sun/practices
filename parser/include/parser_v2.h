@@ -10,7 +10,7 @@
 #include <vector>
 using namespace std;
 
-// declarations:
+// 常量声明
 const double K = 1.38E-23;
 const double Q = 1.60E-19;
 const double N = 38.78;
