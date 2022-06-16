@@ -1,3 +1,6 @@
+#ifndef GETINVERSEMATRIX
+#define GETINVERSEMATRIX
+
 #include <iostream>
 #include <vector>
 
@@ -7,3 +10,5 @@ bool GetMatrixInverse(std::vector<std::vector<double>> &JAC);
 
 double getA(std::vector<std::vector<double>> &JAC, int n);
 void getAStart(std::vector<std::vector<double>> &JAC, int n, std::vector<std::vector<double>> &ans);
+
+#endif

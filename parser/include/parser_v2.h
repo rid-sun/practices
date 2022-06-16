@@ -1,6 +1,9 @@
 //  PARSER.H
 //  Header for Parser program.
 
+#ifndef PARSER_V2
+#define PARSER_V2
+
 #include <ctype.h>
 #include <cmath>
 #include <fstream>
@@ -199,3 +202,5 @@ double calculateFe_(vector<double> &X, double Is, double af, double n, int con1,
 double calculateFc_(vector<double> &X, double Is, double ar, double n, int con1, int con2, int datum, int nameNum2);
 
 pair<int, int> getVSourceID(Connections *conList);
+
+#endif
