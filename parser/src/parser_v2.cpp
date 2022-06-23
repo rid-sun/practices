@@ -114,17 +114,16 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
 
 /*
  * 解析网表文件，并将数据存储到定义的数据结构中
- * @param nodeList 节点链表，存储所有的节点
- * @param compList 器件链表，存储所有出现的器件
- * @param modelList 存储所有声明的model
- * @param datum 接地节点编号
- * @param lastnode 最大节点编号
+ * @param netlist 网表描述结构
  * @param inFileName 网表输入文件名称
  * @param outFileName 解析结果输出文件名称
  */
-void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, int& datum, int& lastnode, string& inFileName, string& outFileName) {
+void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
     ifstream inFile;
     ofstream outFile;
+    NodeHead &nodeList = netlist.getNodeHead();
+    CompHead &compList = netlist.getCompHead();
+    ModelHead &modelList = netlist.getModelHead();
 
     // 分析过程中所需的变量
     char buf[BufLength], buf1[BufLength], buf2[BufLength], nameBuf[NameLength];
@@ -165,22 +164,25 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     cout << endl
          << "Output saved to file: " << outFileName << endl;
 
-    // 4. 网表解析
-    inFile.getline(buf, BufLength); // first line of netlist is discarded
-    inFile.getline(buf, BufLength);
-
     cout << endl
          << "==================The process of netlist parsing starts===================" << endl;
 
-    // 4.1 模型遍历识别，并入链
+    // 4. 网表解析  /*对于一个网表的识别，除了应包含点器件连接关系、模型声明语句、结束语句，还应包含控制语句和分析语句*/
+    // 4.1 标题行处理
+    inFile.getline(buf, BufLength);
+    netlist.setTitle(buf);
+
+    // 4.2 扫描点语句相关
+    inFile.getline(buf, BufLength);
     cout << endl
-         << "=====================(1) Models scan has started==========================" << endl;
+         << "===================(1) Dot statements scan has started====================" << endl;
     while (inFile.good()) {
         if ((buf == NULL) || (*buf == '\0')) {
             inFile.getline(buf, BufLength);
             continue;
         }
         strcpy(buf1, buf);
+        /*TODO：对于各种点语句的识别*/
         if (!strcmp(strtok(buf1, " "), ".model")) {// strtok是一个分解字符串的函数，如果不是模型申明语句，那么跳过
             strcpy(buf2, strtok(NULL, " ")); //继续分割，赋值到buf2，此时buf2是器件的名称
             charPtr1 = strtok(NULL, " ");    //继续分割给到charPtr1，此时charPtr1是器件的类型
@@ -214,13 +216,36 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
             modelPtr = new Model(buf2, TtypeBuf, temp1, temp2, temp3, temp4);
             modelList.addModel(modelPtr);
         }
-        inFile.getline(buf, BufLength);
-    } //模型已经扫描处理完毕
-    inFile.close();
-    inFile.clear();// 这点注意一下
-    inFile.open(inFileName, ios::in); //现在开始扫描处理其他的信息
+        
+        if (!strcmp(strtok(buf1, " "), ".tran")) {
+            strcpy(buf2, strtok(NULL, " "));
+            if (!strcmp(buf2, "stop")) {
+                charPtr1 = strtok(NULL, " ");
+                netlist.setTranStop(stripString(charPtr1));
+            }
+            /*TODO：处理其他的参数情况*/
+        }
 
-    // 4.2 器件遍历扫描，并入链
+        // if (!strcmp(strtok(buf1, " "), ".ic")) {
+        //     //待补充
+        // }
+
+        // if (!strcmp(strtok(buf1, " "), ".nodeset")) {
+        //     //待补充
+        // }
+
+        // if (!strcmp(strtok(buf1, " "), ".options")) {
+        //     //待补充
+        // }
+
+        inFile.getline(buf, BufLength);
+    }
+
+    inFile.close();
+    inFile.clear();
+    inFile.open(inFileName, ios::in);
+
+    // 4.3 器件遍历扫描，并入链
     cout << endl
          << "=====================(2) Components scan has started======================" << endl;
     char model_str[9];
@@ -386,11 +411,11 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
     }
 
     // 5. 确认传入的起始节点编号可用、正确；如果没有传入起始节点编号，那么找到连接器件数最多的节点作为接地节点
-    if (datum != NA) {
+    if (netlist.getDatum() != NA) {
         Boolean check = FALSE;
         nodePtr = nodeList.getNode(0);
         while (nodePtr != NULL) {
-            if (nodePtr->getNameNum() == datum)
+            if (nodePtr->getNameNum() == netlist.getDatum())
                 check = TRUE;
             nodePtr = nodePtr->getNext();
         }
@@ -407,17 +432,18 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
                 nodePtr = nodePtr1;
             nodePtr1 = nodePtr1->getNext();
         }
-        datum = nodePtr->getNameNum(); // datum是Count数最大的那个
+        netlist.setDatum(nodePtr->getNameNum()); // datum是Count数最大的那个
     }
 
     // 6. 找到节点编号中最大的
     // 注意：不能简单地通过nodeList中的nodeCount就得出编号，因为对于网表描述的不一，有的0接地，有的不存在0
     nodePtr = nodeList.getNode(0); //~> getting the pointer to the first node, pointed by 'headNode'
-    lastnode = nodePtr->getNameNum();
+    int lastnode = nodePtr->getNameNum();
     while (nodePtr != NULL) {
         lastnode = (nodePtr->getNameNum() > lastnode) ? nodePtr->getNameNum() : lastnode;
         nodePtr = nodePtr->getNext();
     }
+    netlist.setLastnode(lastnode);
 
     // 7. 输出解析内容，检查是否正确解析
     outFile.open(outFileName + "_parser.txt", ios::out);
@@ -425,10 +451,11 @@ void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, 
         cerr << "Failed to open " << outFileName + "_parser.txt" << '\n';
         exit(0);
     }
-    outFile << "datum = " << datum << "        lastnode = " << lastnode << endl;
+    outFile << "Title: " << netlist.getTitle() << endl;
+    outFile << "datum = " << netlist.getDatum() << "        lastnode = " << netlist.getLastnode() << endl;
     nodePtr = nodeList.getNode(0);
     while(nodePtr != NULL){
-        outFile << "节点"<<nodePtr->getNameNum()<<"        所连器件数为："<<nodePtr->getCount() << endl;
+        outFile << "节点"<< nodePtr->getNameNum() << "        所连器件数为：" << nodePtr->getCount() << endl;
         nodePtr->printMessage(outFile);
         nodePtr = nodePtr->getNext();
     }
@@ -1508,6 +1535,8 @@ ModelHead::ModelHead() {
     modelList = NULL;
 }
 
+ModelHead::~ModelHead() {}
+
 // 添加模型到链上
 void ModelHead::addModel(Model *modelIn) {
     Model *modelPtr;
@@ -1530,4 +1559,144 @@ Model *ModelHead::getModel(char *nameIn) {
         modelPtr = modelPtr->getNext();
     }
     return modelPtr;
+}
+
+// Netlist的构造函数，初始化一些变量为默认值
+Netlist::Netlist() {
+    title = "nothing";
+    analysisType = DC;
+    is_ic = FALSE;
+    is_nodeset = FALSE;
+    is_options = FALSE;
+    tran_stop = NA;
+    datum = NA;
+    lastnode = NA;
+}
+
+// Netlist的析构函数
+Netlist::~Netlist() {}
+
+// 设置网表的主题
+void Netlist::setTitle(string name) {
+    title = name;
+}
+
+// 设置网表分析的类型
+void Netlist::setAnalysisType(AnalysisType type) {
+    analysisType = type;
+}
+
+// 标记是否有.ic控制条件
+void Netlist::setISIC(Boolean isIC) {
+    is_ic = isIC;
+}
+
+// 标记是否有.nodeset条件
+void Netlist::setISNodeset(Boolean isNodeset) {
+    is_nodeset = isNodeset;
+}
+
+// 标记是否有options语句
+void Netlist::setISOptions(Boolean isOptions) {
+    is_options = isOptions;
+}
+
+// 插入.ic控制条件的条目
+void Netlist::insertIC(int id, double value) {
+    ic.insert({id, value});
+}
+
+// 插入.nodeset控制条件的条目
+void Netlist::insertNodeset(int id, double value) {
+    nodeset.insert({id, value});
+}
+
+// 插入.options控制条件的条目
+void Netlist::insertOptions(string param, double value) {
+    options.insert({param, value});
+}
+
+// 设定瞬态分析中的终止时间
+void Netlist::setTranStop(double stopTime) {
+    tran_stop = stopTime;
+}
+
+// 设定网表中最大的节点编号
+void Netlist::setLastnode(int id) {
+    lastnode = id;
+}
+
+// 设定网表中接地节点的编号
+void Netlist::setDatum(int id) {
+    datum = id;
+}
+
+// 获取网表中的模型链表引用
+ModelHead& Netlist::getModelHead() {
+    return modelList;
+}
+
+// 获取网表中的器件链表引用
+CompHead& Netlist::getCompHead() {
+    return compList;
+}
+
+// 获取网表中的节点链表的引用
+NodeHead& Netlist::getNodeHead() {
+    return nodeList;
+}
+
+// 获取网表的title
+string Netlist::getTitle() {
+    return title;
+}
+
+// 获取网表分析类型
+AnalysisType Netlist::getAnalysisType() {
+    return analysisType;
+}
+
+// 获取标记，是否有.ic控制条件
+Boolean Netlist::getISIC() {
+    return is_ic;
+}
+
+// 获取标记，是否有.nodeset控制条件
+Boolean Netlist::getISNodeset() {
+    return is_nodeset;
+}
+
+//获取标记，是否有.options控制条件
+Boolean Netlist::getISOptions() {
+    return is_options;
+}
+
+// 获取.ic控制条件条目集合的引用
+unordered_map<int,double>& Netlist::getICMap() {
+    return ic;
+}
+
+// 获取.nodeset控制条件条目集合的引用
+unordered_map<int,double>& Netlist::getNodesetMap() {
+    return nodeset;
+}
+
+// 获取.options控制条件条目集合的引用
+unordered_map<string,double>& Netlist::getOptionsMap() {
+    return options;
+}
+
+// 获取瞬态分析中的终止时间
+double Netlist::getTranStop() {
+    return tran_stop;
+}
+
+// 获取网表中接地节点的编号
+int Netlist::getDatum() {
+    return datum;
+}
+
+// 获取网表中最大的节点编号
+int Netlist::getLastnode() {
+    return lastnode;
 }

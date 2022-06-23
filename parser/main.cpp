@@ -7,11 +7,8 @@
 using namespace std;
 
 // 分析求解相关
-NodeHead nodeList;
-CompHead compList;
-ModelHead modelList;
-int datum, lastnode;
 string inFileName, outFileName;
+Netlist netlist;
 
 int main(int argc, char** argv) {
     config::parse_args(argc, argv);
@@ -27,16 +24,15 @@ int main(int argc, char** argv) {
     } else {
         // cout<<"datum: "<<config::datum<<" inFileName: "<<config::inFileName<<" outFileName: "<<config::outFileName<<endl;
         // 1. 参数、变量等初始化
-        datum = config::datum;
-        lastnode = NA;
+        netlist.setDatum(config::datum);
         inFileName = config::inFileName;
         outFileName = config::outFileName;
 
         // 2. 解析网表文件，存储信息到nodeList、compList、modelList中
-        parseNetList(nodeList, compList, modelList, datum, lastnode, inFileName, outFileName);
+        parseNetList(netlist, inFileName, outFileName);
         
         // 3. 求值准备
-        evaluation::preparation(nodeList, compList, modelList, outFileName, datum, lastnode);
+        evaluation::preparation(netlist, outFileName);
 
         // 4. 牛顿迭代求解
         // evaluation::newtonRaphson();

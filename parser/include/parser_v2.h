@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <unordered_map>
 using namespace std;
 
 // 常量声明
@@ -47,14 +48,20 @@ enum EquaType {// 方程类型
     Nodal,
     Modified
 };
+enum AnalysisType {// 分析类型
+    DC,
+    AC,
+    TRAN
+};
 
-// 六种封装类
+// 七种封装类
 class Component;
 class ComponentHead;
 class Node;
 class NodeHead;
 class Model;
 class ModelHead;
+class Netlist;
 
 // 两种信息类
 struct Connectors {// 器件“端口”类封装信息
@@ -180,6 +187,7 @@ private:
 class ModelHead {// 模型链表结构
 public:
     ModelHead();
+    ~ModelHead();
     void addModel(Model *modelIn);
     Model *getModel(char *nameIn);
 
@@ -187,9 +195,58 @@ private:
     Model *modelList; // 模型链表
 };
 
+class Netlist { // 网表
+public:
+    Netlist();
+    ~Netlist();
+    void setTitle(string name);
+    void setAnalysisType(AnalysisType type);
+    void setISIC(Boolean isIC);
+    void setISNodeset(Boolean isNodeset);
+    void setISOptions(Boolean isOptions);
+    void insertIC(int id, double value);
+    void insertNodeset(int id, double value);
+    void insertOptions(string param, double value);
+    void setTranStop(double stopTime);
+    void setLastnode(int id);
+    void setDatum(int id);
+    
+    ModelHead& getModelHead();
+    CompHead& getCompHead();
+    NodeHead& getNodeHead();
+    string getTitle();
+    AnalysisType getAnalysisType();
+    Boolean getISIC();
+    Boolean getISNodeset();
+    Boolean getISOptions();
+    unordered_map<int,double>& getICMap();
+    unordered_map<int,double>& getNodesetMap();
+    unordered_map<string,double>& getOptionsMap();
+    double getTranStop();
+    int getDatum();
+    int getLastnode();
+
+private:
+    ModelHead modelList;
+    CompHead compList;
+    NodeHead nodeList;
+    string title;
+    AnalysisType analysisType;
+    Boolean is_ic;
+    Boolean is_nodeset;
+    Boolean is_options;
+    unordered_map<int, double> ic;
+    unordered_map<int, double> nodeset;
+    unordered_map<string, double> options;
+    double tran_stop;
+    int lastnode;
+    int datum;
+
+};
+
 void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step);
 
-void parseNetList(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, int &datum, int &lastnode, string &inFileName, string &outFileName);
+void parseNetList(Netlist &netlist, string &inFileName, string &outFileName);
 
 double stripString(char *stringIn);
 

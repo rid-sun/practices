@@ -19,17 +19,17 @@ namespace evaluation{
 
     void newtonRaphson();
     void newtonIterHomo();
-    void preparation(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, string outFileName, int datum, int lastnode);
+    void preparation(Netlist &netlist, string outFileName);
 }
 
 // 初始化命名空间内的变量及做一些预处理
-void evaluation::preparation(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, string outFileName, int datum, int lastnode) {
-    evaluation::nodeList = nodeList;
-    evaluation::compList = compList;
-    evaluation::modelList = modelList;
-    evaluation::datum = datum;
-    evaluation::lastnode = lastnode;
-    evaluation::total = lastnode + compList.getCount(VSource) + 1; /* 实则lastnode + 1 == nodeList.getCount() */
+void evaluation::preparation(Netlist &netlist, string outFileName) {
+    nodeList = netlist.getNodeHead();
+    compList = netlist.getCompHead();
+    modelList = netlist.getModelHead();
+    datum = netlist.getDatum();
+    lastnode = netlist.getLastnode();
+    total = lastnode + compList.getCount(VSource) + 1; /* 实则lastnode + 1 == nodeList.getCount() */
     evaluation::outFileName = outFileName;
 
     // 预处理，初始化方程矩阵、雅克比矩阵等
