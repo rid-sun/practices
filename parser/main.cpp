@@ -38,7 +38,13 @@ int main(int argc, char** argv) {
         // evaluation::newtonRaphson();
 
         // 4. 同伦法求解
-        evaluation::newtonIterHomo();
+        // evaluation::newtonIterHomo();
+
+        // 4. tran分析
+
+        // 4. 进行分析
+        evaluation::analysisProcess();
+        
     }
     return 0;
 }

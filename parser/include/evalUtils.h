@@ -2,23 +2,29 @@
 #include "getInverseMatrix.h"
 #include <random>
 
-namespace evaluation{
+namespace evaluation{ 
+    NodeHead nodeList; // 注意，这里并不是引用类型，所以在初始化值的时候，他其实是网表对应内容的一块“复制品”
+    CompHead compList;  // 换言之，如果改变这里的对象内容，并不会对网表实体中的内容造成任何的影响
+    ModelHead modelList;
+    // Netlist netlist;
     // 分析求解相关
     vector<double> F_X, X, X_n, G, lamda, a;
     vector<vector<double>> JAC;
-    NodeHead nodeList;
-    CompHead compList;
-    ModelHead modelList;
-    int datum, lastnode, step, total;
     string outFileName;
+    int datum, lastnode, step, total;
+    double tran_stop, tran_initialVal;
+    double tran_step;
+    AnalysisType analysisType;
 
     const int ITERATIONNUMS = 15;
     const int RANDOM_MIN = 333333, RANDOM_MAX = 999999;
     const double ERRORGAP = 0.0001;
     Boolean isSuccess = FALSE;
 
+    void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
+    void analysisProcess();
     void preparation(Netlist &netlist, string outFileName);
 }
 
@@ -31,6 +37,9 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     lastnode = netlist.getLastnode();
     total = lastnode + compList.getCount(VSource) + 1; /* 实则lastnode + 1 == nodeList.getCount() */
     evaluation::outFileName = outFileName;
+    tran_stop = netlist.getTranStop();
+    tran_step = 1e-3;
+    analysisType = netlist.getAnalysisType();
 
     // 预处理，初始化方程矩阵、雅克比矩阵等
     X.resize(total);
@@ -288,5 +297,75 @@ void evaluation::newtonIterHomo() {
     for (int i = 0; i < total; i++) {
         if (i == datum) continue;
         cout << "X[" << i << "] = " << X[i] << "      ";
+    }
+}
+
+// 进行tran分析的处理
+/* TODO：需要做一个更普适性的工作 */
+/* 目前有以下限制：
+/* 1. 激励信号默认是从0开始，即初值为0             */
+/* 2. 步长没有动态调整，固定为1ms                 */
+/* 3. 在电路中只包含电容、直流电源、电阻，且电容和电源数目为1个，并且要求一端接地 */
+/* 4. 对于误差的计算也没有做处理                  */
+void evaluation::tranProcess() {
+    cout << endl
+         << "=========================Tran process has started!========================"<<endl;
+    double stop = tran_stop, ans = 0, C_value = 0;
+    double step = tran_step, total_resistor1 = 0, total_resistor2 = 0;
+    int id1 = NA, id2 = NA;
+    Component *comp = compList.getComp(0);
+    while (comp != NULL) {
+        if (comp->getType() == Capacitor) {
+            id1 = comp->getConVal(0);
+            id2 = comp->getConVal(1);
+            break;
+        }
+        comp = comp->getNext();
+    }
+    if (id1 == NA || id2 == NA) {
+        cerr << "There is no capacitor, so you can't do transient analysis!";
+        exit(1);
+    }
+    id1 = id1 == datum ? id2 : id1;
+    Node *node = nodeList.getNode(0);
+    while (node != NULL) {
+        if (node->getNameNum() != datum) {
+            Connections *conList =  node->getConList();
+            while (conList != NULL) {
+                if (conList->comp->getType() == Resistor && conList->comp->getConVal(0) == node->getNameNum()) {
+                    if (node->getNameNum() == id1)
+                        total_resistor1 += 1 / conList->comp->getVal();
+                    else
+                        total_resistor2 += 1 / conList->comp->getVal();
+                } else if (conList->comp->getType() == VSource) {
+                    tran_initialVal = conList->comp->getVal();
+                } else if (conList->comp->getType() == Capacitor) {
+                    C_value = conList->comp->getVal();
+                }
+                conList = conList->next;
+            }
+        }
+        node = node->getNext();
+    }
+    for (int h = 1; h <= (int)(stop / step); h++) {
+        // ans = (tran_initialVal * total_resistor2 + C_value * ans / step) / (C_value / step + 1 / total_resistor1 + 1);
+        ans = (tran_initialVal + C_value * ans / (step * total_resistor2)) / (C_value / (step * total_resistor2) + 1 + total_resistor1 / total_resistor2);
+    }
+    cout << endl
+         << "The value at that time is " << ans << endl;
+}
+
+// 分析过程的入口
+void evaluation::analysisProcess() {
+    switch (analysisType) {
+    case TRAN:
+        tranProcess();
+        break;
+    case DC:
+        // newtonRaphson();
+        newtonIterHomo();
+        break;
+    case AC:
+        break;
     }
 }

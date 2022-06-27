@@ -182,8 +182,9 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
             continue;
         }
         strcpy(buf1, buf);
+        strcpy(buf2, strtok(buf1," "));
         /*TODO：对于各种点语句的识别*/
-        if (!strcmp(strtok(buf1, " "), ".model")) {// strtok是一个分解字符串的函数，如果不是模型申明语句，那么跳过
+        if (!strcmp(buf2, ".model")) {// strtok是一个分解字符串的函数，如果不是模型申明语句，那么跳过
             strcpy(buf2, strtok(NULL, " ")); //继续分割，赋值到buf2，此时buf2是器件的名称
             charPtr1 = strtok(NULL, " ");    //继续分割给到charPtr1，此时charPtr1是器件的类型
             if (!strcmp(charPtr1, "PNP"))    //类型处理
@@ -217,13 +218,18 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
             modelList.addModel(modelPtr);
         }
         
-        if (!strcmp(strtok(buf1, " "), ".tran")) {
-            strcpy(buf2, strtok(NULL, " "));
-            if (!strcmp(buf2, "stop")) {
+        if (!strcmp(buf2, ".tran")) {
+            charPtr1 = strtok(NULL, " ");
+            while (charPtr1 != NULL) {
+                string s(charPtr1);
+                if (s.substr(0, 4) == "stop") {
+                    netlist.setTranStop(stripString(buf2));
+                }
+                /*TODO：处理其他的参数情况*/
                 charPtr1 = strtok(NULL, " ");
-                netlist.setTranStop(stripString(charPtr1));
             }
-            /*TODO：处理其他的参数情况*/
+            netlist.setAnalysisType(TRAN);
+            cout<<netlist.getAnalysisType();
         }
 
         // if (!strcmp(strtok(buf1, " "), ".ic")) {
@@ -722,6 +728,12 @@ void Component::printMessage(ofstream &outFile, int conNum){
     case ISource:
         outFile << "        编号：" << getcompNum() << "    类型："
                 << "ISource"
+                << " 连接端口：" << conNum << "    名称：" << name << endl;
+        outFile << "        value: " << value << endl;    
+        break;
+    case Capacitor:
+        outFile << "        编号：" << getcompNum() << "    类型："
+                << "Capacitor"
                 << " 连接端口：" << conNum << "    名称：" << name << endl;
         outFile << "        value: " << value << endl;    
         break;
