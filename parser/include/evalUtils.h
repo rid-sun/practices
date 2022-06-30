@@ -1,8 +1,13 @@
 #include "parser_v2.h"
 #include "getInverseMatrix.h"
 #include <random>
+#include <Python.h>
 
 namespace evaluation{ 
+    // 绘图相关
+    vector<double> x_axis_data;
+    vector<double> y_axis_data;
+    
     NodeHead nodeList; // 注意，这里并不是引用类型，所以在初始化值的时候，他其实是网表对应内容的一块“复制品”
     CompHead compList;  // 换言之，如果改变这里的对象内容，并不会对网表实体中的内容造成任何的影响
     ModelHead modelList;
@@ -21,6 +26,7 @@ namespace evaluation{
     const double ERRORGAP = 0.0001;
     Boolean isSuccess = FALSE;
 
+    int plot(vector<double> X, vector<double> Y, string x_name, string y_name, int step); 
     void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
@@ -347,12 +353,22 @@ void evaluation::tranProcess() {
         }
         node = node->getNext();
     }
+    x_axis_data.clear();
+    y_axis_data.clear();
     for (int h = 1; h <= (int)(stop / step); h++) {
         // ans = (tran_initialVal * total_resistor2 + C_value * ans / step) / (C_value / step + 1 / total_resistor1 + 1);
         ans = (tran_initialVal + C_value * ans / (step * total_resistor2)) / (C_value / (step * total_resistor2) + 1 + total_resistor1 / total_resistor2);
+        x_axis_data.push_back(h * step);
+        y_axis_data.push_back(ans);
     }
     cout << endl
          << "The value at that time is " << ans << endl;
+    
+    // 绘图
+    if (plot(x_axis_data, y_axis_data, "time(s)", "voltage(v)", 0) == -1) {
+        cerr << endl
+             << "Can't draw the fig!" << endl;
+    }
 }
 
 // 分析过程的入口
@@ -368,4 +384,75 @@ void evaluation::analysisProcess() {
     case AC:
         break;
     }
+}
+
+// 绘图
+int evaluation::plot(vector<double> X, vector<double> Y, string x_name, string y_name, int step) {
+    // 初始化python环境
+    Py_Initialize();
+    if (!Py_IsInitialized()) {
+        printf("Py_Initialize failed!!!\n");
+        return -1;
+    }
+
+    // 测试语句
+    // PyRun_SimpleString("print('Hello Python!')\n");
+    PyRun_SimpleString("import os,sys");//执行import语句，把当前路径的上一级加入路径中，为了找到plot.py
+    PyRun_SimpleString("sys.path.append('../')");
+    // PyRun_SimpleString("print(os.getcwd())");//测试打印当前路径
+
+    // 定义调用函数时的相关变量
+    PyObject *pModule;
+    PyObject *pFunction;
+    PyObject *pArgs;
+    PyObject *pRetValue;
+
+    // 加载脚本进来
+    pModule = PyImport_ImportModule("plot"); // 注意这里一定要是plot，不带.py
+    if (!pModule) {
+        printf("import python failed!!!\n");
+        return -1;
+    }
+
+    // 查找工具函数
+    pFunction = PyObject_GetAttrString(pModule, "plot_util");
+    if (!pFunction) {
+        printf("get python function failed!!!\n");
+        return -1;
+    }
+
+    // 构建参数
+    // 预处理vector(cpp) -> list(py)
+    PyObject *list1 = PyList_New(X.size()); // X -> x_axis_data
+    for (int i = 0; i < X.size(); i++) {
+        PyList_SetItem(list1, i, Py_BuildValue("d", X[i]));
+    }
+    PyObject *list2 = PyList_New(Y.size()); // Y -> y_axis_data
+    for (int i = 0; i < Y.size(); i++) {
+        PyList_SetItem(list2, i, Py_BuildValue("d", Y[i]));
+    }
+
+    pArgs = PyTuple_New(5);
+    PyTuple_SetItem(pArgs, 0, list1);
+    PyTuple_SetItem(pArgs, 1, list2);
+    PyTuple_SetItem(pArgs, 2, Py_BuildValue("s", x_name.c_str()));
+    PyTuple_SetItem(pArgs, 3, Py_BuildValue("s", y_name.c_str()));
+    PyTuple_SetItem(pArgs, 4, Py_BuildValue("s", y_name.c_str()));
+    PyTuple_SetItem(pArgs, 4, Py_BuildValue("s", ("fig" + to_string(step)).c_str()));
+
+    // 调用函数
+    pRetValue = PyObject_CallObject(pFunction, pArgs);
+
+    // 清空PyObject
+    Py_DECREF(pModule);
+    Py_DECREF(pFunction);
+    Py_DECREF(pArgs);
+    Py_DECREF(pRetValue);
+    Py_DECREF(list1);
+    Py_DECREF(list2);
+
+    // 终止Py环境
+    Py_Finalize();
+
+    return 0;
 }
