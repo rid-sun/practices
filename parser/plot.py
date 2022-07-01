@@ -3,7 +3,7 @@ import numpy as np
 
 def plot_util(x_axis_data, y_axis_data, xlabel, ylabel, fig_name):
     for x, y in zip(x_axis_data, y_axis_data):
-        plt.text(x, y+0.3, '%.2f' % y, horizontalalignment="center", verticalalignment="center", fontsize=7.5)# y_axis_data1加标签数据
+        plt.text(x, y, '%.2f' % y, ha="center", va="bottom", fontsize=7.5)# y_axis_data1加标签数据
 
     plt.plot(x_axis_data, y_axis_data, 'b*--', alpha=0.5, linewidth=1, label='vol')# 'bo-'表示蓝色实线，数据点实心原点标注
     ## plot中参数的含义分别是横轴值，纵轴值，线的形状（'s'方块,'o'实心圆点，'*'五角星   ...，颜色，透明度,线的宽度和标签 ，
