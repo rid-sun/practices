@@ -6,7 +6,7 @@
 namespace evaluation{ 
     // 绘图相关
     vector<double> x_axis_data;
-    vector<double> y_axis_data;
+    vector<vector<double>> y_axis_data;
     
     NodeHead nodeList; // 注意，这里并不是引用类型，所以在初始化值的时候，他其实是网表对应内容的一块“复制品”
     CompHead compList;  // 换言之，如果改变这里的对象内容，并不会对网表实体中的内容造成任何的影响
@@ -15,7 +15,7 @@ namespace evaluation{
     // 分析求解相关
     vector<double> F_X, X, X_n, G, lamda, a;
     vector<vector<double>> JAC;
-    string outFileName;
+    string outFileName, title;
     int datum, lastnode, step, total;
     double tran_stop, tran_initialVal;
     double tran_step;
@@ -26,7 +26,7 @@ namespace evaluation{
     const double ERRORGAP = 0.0001;
     Boolean isSuccess = FALSE;
 
-    int plot(vector<double> X, vector<double> Y, string x_name, string y_name, int step); 
+    int plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step); 
     void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
@@ -46,6 +46,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     tran_stop = netlist.getTranStop();
     tran_step = 1e-3;
     analysisType = netlist.getAnalysisType();
+    title = netlist.getTitle();
 
     // 预处理，初始化方程矩阵、雅克比矩阵等
     X.resize(total);
@@ -232,6 +233,11 @@ void evaluation::newtonIterHomo() {
         tempComp=tempComp->getNext();
     }
 
+    // 对要绘图的量进行清空
+    x_axis_data.clear();
+    y_axis_data.clear();
+    y_axis_data.resize(total - 1);
+
     // 开始同伦法求解迭代
     for (int i = 1; i <= 10;i++) {
         cout << endl
@@ -296,6 +302,13 @@ void evaluation::newtonIterHomo() {
         }
         cout << endl
              << "================the end of lamda = " << lamda[i] << "iteration=============================" << endl;
+        
+        // 设置要绘图的量
+        x_axis_data.push_back(lamda[i]);
+        for (int j = 0, h = 0; j < total; j++) {
+            if (j == datum) continue;
+            y_axis_data[h++].push_back(X[j]);
+        }
     }
 
     cout << endl
@@ -303,6 +316,13 @@ void evaluation::newtonIterHomo() {
     for (int i = 0; i < total; i++) {
         if (i == datum) continue;
         cout << "X[" << i << "] = " << X[i] << "      ";
+    }
+
+    // 开始绘图
+    // 绘图
+    if (plot(x_axis_data, y_axis_data, "lamda", "voltage(v)", title, 0) == -1) {
+        cerr << endl
+             << "Can't draw the fig!" << endl;
     }
 }
 
@@ -355,17 +375,18 @@ void evaluation::tranProcess() {
     }
     x_axis_data.clear();
     y_axis_data.clear();
+    y_axis_data.push_back({});
     for (int h = 1; h <= (int)(stop / step); h++) {
         // ans = (tran_initialVal * total_resistor2 + C_value * ans / step) / (C_value / step + 1 / total_resistor1 + 1);
         ans = (tran_initialVal + C_value * ans / (step * total_resistor2)) / (C_value / (step * total_resistor2) + 1 + total_resistor1 / total_resistor2);
         x_axis_data.push_back(h * step);
-        y_axis_data.push_back(ans);
+        y_axis_data.back().push_back(ans);
     }
     cout << endl
          << "The value at that time is " << ans << endl;
     
     // 绘图
-    if (plot(x_axis_data, y_axis_data, "time(s)", "voltage(v)", 0) == -1) {
+    if (plot(x_axis_data, y_axis_data, "time(s)", "voltage(v)", title, 0) == -1) {
         cerr << endl
              << "Can't draw the fig!" << endl;
     }
@@ -387,7 +408,7 @@ void evaluation::analysisProcess() {
 }
 
 // 绘图
-int evaluation::plot(vector<double> X, vector<double> Y, string x_name, string y_name, int step) {
+int evaluation::plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step) {
     // 初始化python环境
     Py_Initialize();
     if (!Py_IsInitialized()) {
@@ -427,18 +448,23 @@ int evaluation::plot(vector<double> X, vector<double> Y, string x_name, string y
     for (int i = 0; i < X.size(); i++) {
         PyList_SetItem(list1, i, Py_BuildValue("d", X[i]));
     }
-    PyObject *list2 = PyList_New(Y.size()); // Y -> y_axis_data
+    PyObject *list2 = PyList_New(0);
     for (int i = 0; i < Y.size(); i++) {
-        PyList_SetItem(list2, i, Py_BuildValue("d", Y[i]));
+        PyObject *t = PyList_New(Y[i].size());
+        for (int j = 0; j < Y[i].size(); j++) {
+            PyList_SetItem(t, j, Py_BuildValue("d", Y[i][j]));
+        }
+        PyList_Append(list2, t);
+        Py_DECREF(t);   
     }
-
-    pArgs = PyTuple_New(5);
+    
+    pArgs = PyTuple_New(6);
     PyTuple_SetItem(pArgs, 0, list1);
     PyTuple_SetItem(pArgs, 1, list2);
     PyTuple_SetItem(pArgs, 2, Py_BuildValue("s", x_name.c_str()));
     PyTuple_SetItem(pArgs, 3, Py_BuildValue("s", y_name.c_str()));
-    PyTuple_SetItem(pArgs, 4, Py_BuildValue("s", y_name.c_str()));
-    PyTuple_SetItem(pArgs, 4, Py_BuildValue("s", ("fig" + to_string(step)).c_str()));
+    PyTuple_SetItem(pArgs, 4, Py_BuildValue("s", title.c_str()));
+    PyTuple_SetItem(pArgs, 5, Py_BuildValue("s", ("fig" + to_string(step)).c_str()));
 
     // 调用函数
     pRetValue = PyObject_CallObject(pFunction, pArgs);
