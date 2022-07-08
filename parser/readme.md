@@ -8,13 +8,11 @@ v3：支持包含 **电阻**、**电压源**、**电流源**、**BJT** 器件的
 ### 可能遇到问题
 1. 出现“由于找不到python39.dll而无法运行程序
     可以在conda的环境中找到这个dll然后复制到build目录下
-2. 出现如下图的提示
+2. 出现如下图的提示 或者 python脚本执行错误
 ![error1](pic/error1.png)
-    那么可以在环境变量中进行配置，并且将对应变量的值设置为conda目录，(**必须注意重启电脑生效**)，如下
-![solution1](pic/solution1.png)
-3. 因为在plot.py中引入了matplotlib这个包，如果运行失败的话，那可能是没有install该包的原因，下载即可
-    具体的测试方法可以用PyRun_SimpleString("import cv2")语句来逐条测试一下有无报错
-4. 出现如下图的提示
+    那么需要修改 /include/evalUtils.h 中 plot函数的首行代码，将自己的python解释器路径填入到里面
+1. 因为在plot.py中引入了matplotlib这个包，如果运行失败的话，那可能是没有install该包的原因，下载即可。具体的测试方法可以用类似PyRun_SimpleString("import cv2")语句来逐条测试一下有无报错
+2. 出现如下图的提示
 ![error2](pic/error2.png)
     那么可以做如下的配置，注意配置完后重启cmd。
 ![solution2](pic/solution2.png)

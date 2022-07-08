@@ -409,6 +409,10 @@ void evaluation::analysisProcess() {
 
 // 绘图
 int evaluation::plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step) {
+    
+    // 很重要
+    Py_SetPythonHome(L"D:/Anaconda3");
+    
     // 初始化python环境
     Py_Initialize();
     if (!Py_IsInitialized()) {
