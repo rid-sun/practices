@@ -229,7 +229,7 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
                 charPtr1 = strtok(NULL, " ");
             }
             netlist.setAnalysisType(TRAN);
-            cout<<netlist.getAnalysisType();
+            // cout << netlist.getAnalysisType();
         }
 
         // if (!strcmp(strtok(buf1, " "), ".ic")) {
