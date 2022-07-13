@@ -4,7 +4,7 @@ Parser 是一个进行电路直流分析的项目，支持含有 **电阻**、**
 ![example](pic/example.png)
 
 ## Install
-1. 假定你的 `Python` 解释器是由 `Anaconda` 提供，如果不是，请在 [`CMakelists.txt`](https://github.com/rid-sun/practices/blob/main/parser/CMakeLists.txt) 和 ['evalUtils.h'](https://github.com/rid-sun/practices/blob/main/parser/include/evalUtils.h) 中分别按如下进行相应的修改（即将目录更换到你自己的  `Python` 解释器的安装目录）
+1. 假定你的 `Python` 解释器是由 `Anaconda` 提供，如果不是，请在 [`CMakelists.txt`](https://github.com/rid-sun/practices/blob/main/parser/CMakeLists.txt) 和 [`evalUtils.h`](https://github.com/rid-sun/practices/blob/main/parser/include/evalUtils.h) 中分别按如下进行相应的修改（即将目录更换到你自己的  `Python` 解释器的安装目录）
 ```CMake
 include_directories("D:/Anaconda3/include") # 注意，在这里键入你的python安装包的include文件夹路径
 link_directories("D:/Anaconda3/libs") # 注意，在这里键入你的python安装包的include文件夹路径
@@ -37,7 +37,7 @@ outFile: 输出信息文件名
 parser -f ../testcase/testcase4/Netlist4.txt -d 0 -o output
 ```
 
-结果就是上面的 ['example'](#parser) 图示一样
+结果就是上面的 [`example`](#parser) 图示一样
 
 ## Todo
 
