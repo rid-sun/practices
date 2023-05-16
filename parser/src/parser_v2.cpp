@@ -223,7 +223,7 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
             while (charPtr1 != NULL) {
                 string s(charPtr1);
                 if (s.substr(0, 4) == "stop") {
-                    netlist.setTranStop(stripString(buf2));
+                    netlist.setTranStop(stripString(charPtr1));
                 }
                 /*TODO：处理其他的参数情况*/
                 charPtr1 = strtok(NULL, " ");
