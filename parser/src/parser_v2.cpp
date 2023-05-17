@@ -109,7 +109,7 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
     outFile.clear();
 
     cout << endl
-         << "=============The solution of the " << step << "th iteration is completed.=============" << endl;
+         << "     the " << step << "th matrix assembly is completed.---" << endl;
 }
 
 /*
@@ -223,7 +223,9 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
             while (charPtr1 != NULL) {
                 string s(charPtr1);
                 if (s.substr(0, 4) == "stop") {
-                    netlist.setTranStop(stripString(buf2));
+                    // cout << stripString(buf2) << endl;
+                    // netlist.setTranStop(stripString(buf2));
+                    netlist.setTranStop(stripString(charPtr1));
                 }
                 /*TODO：处理其他的参数情况*/
                 charPtr1 = strtok(NULL, " ");

@@ -13,7 +13,8 @@ namespace evaluation{
     ModelHead modelList;
     // Netlist netlist;
     // 分析求解相关
-    vector<double> F_X, X, X_n, G, lamda, a;
+    vector<double> F_X, X, X_n;
+    vector<double> G, lamda, a; // 同伦法相关使用的变量
     vector<vector<double>> JAC;
     string outFileName, title;
     int datum, lastnode, step, total;
@@ -26,7 +27,8 @@ namespace evaluation{
     const double ERRORGAP = 0.0001;
     Boolean isSuccess = FALSE;
 
-    int plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step); 
+    int plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step);
+    void test_aq(vector<double>& X, vector<double>& a);
     void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
@@ -76,7 +78,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
 
 // 牛顿迭代过程
 void evaluation::newtonRaphson() {
-    
+
     // 1. 设置X初始值
     // 注意电压源引入补偿方程的初值是确定的
     Component *tempComp = compList.getComp(0);
@@ -89,6 +91,9 @@ void evaluation::newtonRaphson() {
         }
         tempComp=tempComp->getNext();
     }
+
+    // 测试
+    test_aq(X, a);
 
     // // 打印测试
     // for (int i = 0; i < X.size(); i++) {
@@ -109,7 +114,7 @@ void evaluation::newtonRaphson() {
     // 2. 牛顿迭代开始
     for (int i = 0; i < ITERATIONNUMS; i++) {
         cout << endl
-             << "===================the beginning of " << i + 1 << "th iteration=========================" << endl;
+             << "     the beginning of " << i + 1 << "th iteration=========================" << endl;
 
         // for (int i = 0; i < total;i++) {
         //     if(i == datum) continue;
@@ -233,6 +238,9 @@ void evaluation::newtonIterHomo() {
         tempComp=tempComp->getNext();
     }
 
+    // 测试
+    test_aq(X, a);
+
     // 对要绘图的量进行清空
     x_axis_data.clear();
     y_axis_data.clear();
@@ -241,11 +249,11 @@ void evaluation::newtonIterHomo() {
     // 开始同伦法求解迭代
     for (int i = 1; i <= 10;i++) {
         cout << endl
-             << "================the beginning of lamda = " << lamda[i] << "iteration======================" << endl;
+             << "lamda = " << lamda[i] << " iteration---" << endl;
         step = 1;
         while(step < ITERATIONNUMS) {
             cout << endl
-                 << "============the beginning of " << step << "th iteration when lamda = " << lamda[i] << "================" << endl;
+                 << "     step " << step << "th iteration ---" << endl;
             Boolean isSuccess = TRUE;
             
             // 1. 计算jacobian矩阵 和 F_X
@@ -297,11 +305,11 @@ void evaluation::newtonIterHomo() {
                 F_X[h] = 0;
             }
             cout << endl
-                 << "=================the end of " << step << "th iteration when lamda = " << lamda[i] << "==================" << endl;
+                 << "     step " << step << "th iteration end.----" << endl;
             step++;
         }
         cout << endl
-             << "================the end of lamda = " << lamda[i] << "iteration=============================" << endl;
+             << "================the end of lamda = " << lamda[i] << " iteration=============================" << endl;
         
         // 设置要绘图的量
         x_axis_data.push_back(lamda[i]);
@@ -320,7 +328,7 @@ void evaluation::newtonIterHomo() {
 
     // 开始绘图
     // 绘图
-    if (plot(x_axis_data, y_axis_data, "lamda", "voltage(v)", title, 0) == -1) {
+    if (plot(x_axis_data, y_axis_data, "lamda", "voltage(v)", title, 0) != 512) {
         cerr << endl
              << "Can't draw the fig!" << endl;
     }
@@ -386,7 +394,7 @@ void evaluation::tranProcess() {
          << "The value at that time is " << ans << endl;
     
     // 绘图
-    if (plot(x_axis_data, y_axis_data, "time(s)", "voltage(v)", title, 0) == -1) {
+    if (plot(x_axis_data, y_axis_data, "time(s)", "voltage(v)", title, 0) != 512) {
         cerr << endl
              << "Can't draw the fig!" << endl;
     }
@@ -405,6 +413,42 @@ void evaluation::analysisProcess() {
     case AC:
         break;
     }
+}
+
+// 测试赋值
+void evaluation::test_aq(vector<double>& X, vector<double>& a) {
+    vector<vector<double>> all_inival;
+    string path = "..\\testcase\\testcase3\\Initial_val3.txt"; // 文件路径
+    char *line = (char *)malloc(sizeof(char) * 1024);
+    char *p;
+    FILE *fp = fopen(path.c_str(), "r");
+    if (fp == NULL) {
+        cout << "File opening error!" << endl;
+        return;
+    }
+    while (!feof(fp)) {
+        fgets(line, 1024, fp);
+        p = strtok(line, " ");
+        if (isdigit(p[0])) {
+            vector<double> t;
+            t.push_back(0);
+            while (p != NULL) {
+                t.push_back(strtod(p, NULL));
+                p  = strtok(NULL, " ");
+            }
+            all_inival.push_back(t);
+        }
+    }
+    fclose(fp);
+    
+    // 选取所有初值中的一种来赋值
+    for (int i = 0; i < all_inival[0].size(); i++) {
+        a[i] = X[i] = all_inival[0][i];
+        // cout << X[i] << " ";
+    }
+    // cout << endl;
+
+    return;
 }
 
 // 绘图
@@ -484,5 +528,5 @@ int evaluation::plot(vector<double> X, vector<vector<double>> Y, string x_name, 
     // 终止Py环境
     Py_Finalize();
 
-    return 0;
+    return 512;
 }

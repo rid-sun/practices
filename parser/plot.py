@@ -1,8 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pylab import mpl
+# 设置显示中文字体
+mpl.rcParams["font.sans-serif"] = ["SimHei"]
+# 设置正常显示符号
+mpl.rcParams["axes.unicode_minus"] = False
 
 def plot_util(x_axis_data, y_axis_data, xlabel, ylabel, title, fig_name):
-    all_color = ['#DCDCDC', '#FFDAB9', '#FFE4E1', '#2F4F4F', '#6495ED', '#00BFFF', '#00FFFF', '#66CDAA', '#98FB98']
+    all_color = ['#DCDCDC', '#FFDAB9', '#FFE4E1', '#2F4F4F', '#6495ED', '#00BFFF', '#00FFFF', '#66CDAA', '#98FB98', '#DCDCDC', '#FFDAB9', '#FFE4E1', '#2F4F4F', '#6495ED', '#00BFFF', '#00FFFF', '#66CDAA', '#98FB98']
     max_m = float('-inf')
     min_l = float('inf')
     fig, ax = plt.subplots()
