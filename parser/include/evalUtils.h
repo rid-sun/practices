@@ -467,7 +467,7 @@ int evaluation::plot(vector<double> X, vector<vector<double>> Y, string x_name, 
     // 测试语句
     // PyRun_SimpleString("print('Hello Python!')\n");
     PyRun_SimpleString("import os,sys");//执行import语句，把当前路径的上一级加入路径中，为了找到plot.py
-    PyRun_SimpleString("sys.path.append('../')");
+    PyRun_SimpleString("sys.path.append('../scripts')");
     // PyRun_SimpleString("print(os.getcwd())");//测试打印当前路径
 
     // 定义调用函数时的相关变量

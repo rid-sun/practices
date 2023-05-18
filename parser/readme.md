@@ -50,8 +50,9 @@ parser -f ../testcase/testcase4/Netlist4.txt -d 0 -o output
 1. 出现“由于找不到 ***python39.dll*** 而无法运行程序”的问题，可以在Anaconda的安装目录下找到这个 `python39.dll` 然后复制到build目录下
 
 2. 出现如下图的提示 或者 类似的其他错误
+
 <center><img src = pic/error1.png width = 50%></center>
-   那么需要修改 `/include/evalUtils.h` 中 `plot` 函数的首行代码，将自己的python解释器路径填入到里面
+那么需要修改 `/include/evalUtils.h` 中 `plot` 函数的首行代码，将自己的python解释器路径填入到里面
 
 3. 因为在 `plot.py` 中引入了 `matplotlib` 这个包，如果运行失败的话，那可能是没有install该包的原因，下载即可。具体的测试方法可以用类似`PyRun_SimpleString("import cv2")` 语句来逐条测试一下有无报错
 
