@@ -95,10 +95,10 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
             if(isExist == TRUE) { // 若是的话，那么则需对其补充对自身的求导
                 pair<int, int> p = getVSourceID(nodePtr1->getConList());
                 if(p.second == 1) {
-                    JAC[p.first + lastnode][lastnode + p.first] -= 1;
+                    JAC[p.first + lastnode - 1][lastnode + p.first - 1] -= 1;
                     outFile << "JAC(" << lastnode + p.first << "," << lastnode + p.first << ") = - 1" << endl;
                 } else {
-                    JAC[p.first + lastnode][lastnode + p.first] += 1;
+                    JAC[p.first + lastnode - 1][lastnode + p.first - 1] += 1;
                     outFile << "JAC(" << lastnode + p.first << "," << lastnode + p.first << ") = 1" << endl;
                 }     
             }
@@ -445,6 +445,7 @@ void parseNetList(Netlist &netlist, string &inFileName, string &outFileName) {
 
     // 6. 找到节点编号中最大的
     // 注意：不能简单地通过nodeList中的nodeCount就得出编号，因为对于网表描述的不一，有的0接地，有的不存在0
+    // 2023/7/30 add：一般来说，都是有0号节点，并且它接地，但其实这里找到了最大节点编号，也应该找最小的，这样才能界定整个节点数
     nodePtr = nodeList.getNode(0); //~> getting the pointer to the first node, pointed by 'headNode'
     int lastnode = nodePtr->getNameNum();
     while (nodePtr != NULL) {
@@ -491,53 +492,57 @@ double stripString(char *stringIn) {
 
 // 计算bjt模型的fe函数值
 double calculateFe(vector<double> &X, double Is, double af, double n, int con2, int con1, int datum) {
+    int x2 = con2 > datum ? con2 - 1 : con2, x1 = con1 > datum ? con1 - 1 : con1;
     if (con2 != datum && con1 != datum)
-        return (-Is) / af * (exp(-n * (X[con2] - X[con1])) - 1);
+        return (-Is) / af * (exp(-n * (X[x2] - X[x1])) - 1);
     else if (con2 != datum && con1 == datum)
-        return (-Is) / af * (exp(-n * X[con2]) - 1);
+        return (-Is) / af * (exp(-n * X[x2]) - 1);
     else if (con2 == datum && con1 != datum)
-        return (-Is) / af * (exp(n * X[con1]) - 1);
+        return (-Is) / af * (exp(n * X[x1]) - 1);
     else
         return 0;
 }
 
 // 计算bjt模型的fc函数值
 double calculateFc(vector<double> &X, double Is, double ar, double n, int con0, int con1, int datum) {
+    int x0 = con0 > datum ? con0 - 1 : con0, x1 = con1 > datum ? con1 - 1 : con1;
     if (con0 != datum && con1 != datum)
-        return (-Is) / ar * (exp(-n * (X[con0] - X[con1])) - 1);
+        return (-Is) / ar * (exp(-n * (X[x0] - X[x1])) - 1);
     else if (con0 != datum && con1 == datum)
-        return (-Is) / ar * (exp(-n * X[con0]) - 1);
+        return (-Is) / ar * (exp(-n * X[x0]) - 1);
     else if (con0 == datum && con1 != datum)
-        return (-Is) / ar * (exp(n * X[con1]) - 1);
+        return (-Is) / ar * (exp(n * X[x1]) - 1);
     else
         return 0;
 }
 
 // 计算bjt模型的fe函数的导数值
 double calculateFe_(vector<double> &X, double Is, double af, double n, int con2, int con1, int datum, int nameNum2) {
+    int x2 = con2 > datum ? con2 - 1 : con2, x1 = con1 > datum ? con1 - 1 : con1;
     double temp = 0;
     if (con2 != datum && con1 != datum) {
-        temp = (-Is) * (-n) / af * exp(-n * (X[con2] - X[con1]));
+        temp = (-Is) * (-n) / af * exp(-n * (X[x2] - X[x1]));
         temp = nameNum2 == con1 ? (-temp) : temp;
     }
     else if (con2 != datum && con1 == datum)
-        temp = (-Is) * (-n) / af * exp(-n * X[con2]);
+        temp = (-Is) * (-n) / af * exp(-n * X[x2]);
     else if (con2 == datum && con1 != datum)
-        temp = (-Is) * n / af * exp(n * X[con1]);
+        temp = (-Is) * n / af * exp(n * X[x1]);
     return temp;
 }
 
 // 计算bjt模型的fc函数的导数值
 double calculateFc_(vector<double> &X, double Is, double ar, double n, int con0, int con1, int datum, int nameNum2) {
+    int x0 = con0 > datum ? con0 - 1 : con0, x1 = con1 > datum ? con1 - 1 : con1;
     double temp = 0;
     if (con0 != datum && con1 != datum) {
-        temp = (-Is) * (-n) / ar * exp(-n * (X[con0] - X[con1]));
+        temp = (-Is) * (-n) / ar * exp(-n * (X[x0] - X[x1]));
         temp = nameNum2 == con1 ? (-temp) : temp;
     }
     else if (con0 != datum && con1 == datum)
-        temp = (-Is) * (-n) / ar * exp(-n * X[con0]);    
+        temp = (-Is) * (-n) / ar * exp(-n * X[x0]);    
     else if (con0 == datum && con1 != datum)
-        temp = (-Is) * n / ar * exp(n * X[con1]);
+        temp = (-Is) * n / ar * exp(n * X[x1]);
     return temp;
 }
 
@@ -763,16 +768,17 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
         double is = model->getIs(), ar = model->getAr(), af = model->getAf(), n = model->getN();
         double fc = calculateFc(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum);
         double fe = calculateFe(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum);
+        int fx_bjt = actualName > datum ? actualName - 1 : actualName; // 处理编号问题
         if ((con0.node->getNameNum() == nameNum) && (model->getType() == NPN)) {
-            F_x[actualName] += fc - af * fe;
+            F_x[fx_bjt] += fc - af * fe;
             outFile << " + " << name << "_Ic";
         }
         else if ((con2.node->getNameNum() == nameNum) && (model->getType() == NPN)) {
-            F_x[actualName] += fe - ar * fc;
+            F_x[fx_bjt] += fe - ar * fc;
             outFile << " + " << name << "_Ie";     
         }
         else if((con1.node->getNameNum() == nameNum) && (model->getType() == NPN)) {
-            F_x[actualName] -= fc - af * fe + fe - ar * fc;
+            F_x[fx_bjt] -= fc - af * fe + fe - ar * fc;
             outFile << " - " << name << "_Ie"
                     << " - " << name << "_Ic";
         }
@@ -780,40 +786,46 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
         // TODO: 其他情况是知识完善后，再做补充处理
         break;
 
-    case VSource: // KCL
+    case VSource: { // KCL
+        int fx_v = actualName > datum ? actualName - 1 : actualName, x_v = lastnode + compNum > datum ? lastnode + compNum - 1 : lastnode + compNum; // 处理编号问题
         if(con0.node->getNameNum() == nameNum) {
-            F_x[actualName] += X[lastnode + compNum];
+            F_x[fx_v] += X[x_v];
             outFile << " + x(" << lastnode + compNum << ")";
         }
         else if(con1.node->getNameNum() == nameNum) {
-            F_x[actualName] -= X[lastnode + compNum];
+            F_x[fx_v] -= X[x_v];
             outFile << " - x(" << lastnode + compNum << ")";
         }
+    }
         break;
 
-    case ISource:
+    case ISource: {
+        int fx_i = actualName > datum ? actualName - 1 : actualName; // 处理编号问题
         if (con0.node->getNameNum() == nameNum) {
-            F_x[actualName] += value;
+            F_x[fx_i] += value;
             outFile << " + " << name;
         } else if (con1.node->getNameNum() == nameNum) {
-            F_x[actualName] -= value;
+            F_x[fx_i] -= value;
             outFile << " - " << name;
         }
+    }
         break;
 
     case Diode:
         // TODO：待完成该情况下处理
         break;
 
-    case Resistor:
+    case Resistor: {
+        int fx_r = actualName > datum ? actualName - 1 : actualName, x_r_0 = con0.node->getNameNum() > datum ? con0.node->getNameNum() - 1 : con0.node->getNameNum();
+        int x_r_1 = con1.node->getNameNum() > datum ? con1.node->getNameNum() - 1 : con1.node->getNameNum();
         if (con0.node->getNameNum() == nameNum) {
             outFile << " + (";
             if (con0.node->getNameNum() != datum) {
-                F_x[actualName] += X[con0.node->getNameNum()] / value;
+                F_x[fx_r] += X[x_r_0] / value;
                 outFile << " x(" << con0.node->getNameNum() << ')';
             }
             if (con1.node->getNameNum() != datum) {
-                F_x[actualName] -= X[con1.node->getNameNum()] / value;
+                F_x[fx_r] -= X[x_r_1] / value;
                 outFile << " - x(" << con1.node->getNameNum() << ')';
             }  
             outFile << " ) / " << name;
@@ -821,15 +833,16 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
         else if (con1.node->getNameNum() == nameNum) {
             outFile << " + (";
             if (con1.node->getNameNum() != datum) {
-                F_x[actualName] += X[con1.node->getNameNum()] / value;
+                F_x[fx_r] += X[x_r_1] / value;
                 outFile << " x(" << con1.node->getNameNum() << ')';
             }
             if (con0.node->getNameNum() != datum) {
-                F_x[actualName] -= X[con0.node->getNameNum()] / value;
+                F_x[fx_r] -= X[x_r_0] / value;
                 outFile << " - x(" << con0.node->getNameNum() << ')';
             }   
             outFile << " ) / " << name;
         }
+    }
         break;
 
     case Capacitor:
@@ -854,18 +867,19 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
  * @param MNAName 记录未知电流变量编号
  */
 int Component::genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode) {
+    int fx_0 = con0.conNum > datum ? con0.conNum - 1 : con0.conNum, fx_1 = con1.conNum > datum ? con1.conNum - 1 : con1.conNum;
     if(con0.conNum != datum && con1.conNum != datum) {
-        F_x[con0.conNum] += X[con0.conNum] - X[con1.conNum] - value;
+        F_x[fx_0] += X[fx_0] - X[fx_1] - value;
         outFile << "F(" << con0.conNum << ") = x(" << con0.conNum << ") - x(" << con1.conNum << ") - " << name << endl;
         return con0.conNum;
     }
     else if(con0.conNum != datum && con1.conNum == datum) {
-        F_x[con0.conNum] += X[con0.conNum] - value;
+        F_x[fx_0] += X[fx_0] - value;
         outFile << "F(" << con0.conNum << ") = x(" << con0.conNum << ") - " << name << endl;
         return con0.conNum;
     }
     else if(con0.conNum == datum && con1.conNum != datum) {
-        F_x[con1.conNum] -= X[con1.conNum] + value;
+        F_x[fx_1] -= X[fx_1] + value;
         outFile << "F(" << con1.conNum << ") = - x(" << con1.conNum << ") - " << name << endl;
         return con1.conNum;
     }
@@ -881,20 +895,22 @@ int Component::genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<dou
  * @param lastnode 最大节点编号
  */
 int Component::genKVLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int datum, int lastnode) {
+    int x0 = con0.conNum > datum ? con0.conNum - 1 : con0.conNum;
+    int x1 = con1.conNum > datum ? con1.conNum - 1 : con1.conNum;
     if(con0.conNum != datum && con1.conNum != datum) {
-        JAC[con0.conNum][con0.conNum] += 1;
-        JAC[con0.conNum][con1.conNum] -= 1;
+        JAC[x0][x0] += 1;
+        JAC[x0][x1] -= 1;
         outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = 1" << endl;
         outFile << "JAC(" << con0.conNum << "," << con1.conNum << ") = - 1" << endl;
         return con0.conNum;
     }
     else if(con0.conNum != datum && con1.conNum == datum) {
-        JAC[con0.conNum][con0.conNum] += 1;
+        JAC[x0][x0] += 1;
         outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = 1" << endl;
         return con0.conNum;
     }
     else if(con0.conNum == datum && con1.conNum != datum) {
-        JAC[con1.conNum][con1.conNum] -= 1;
+        JAC[x1][x1] -= 1;
         outFile << "JAC(" << con1.conNum << "," << con1.conNum << ") = - 1" << endl;
         return con1.conNum;
     }
@@ -922,6 +938,8 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
         break;
 
     case BJT: {
+        int x1 = actualName > datum ? actualName - 1 : actualName;
+        int x2 = nameNum2 > datum ? nameNum2 - 1 : nameNum2;
         double is = model->getIs(), ar = model->getAr(), af = model->getAf(), n = model->getN();
         if ((con0.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con0.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N / ar * exp( - N * ( ";
@@ -930,7 +948,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] += calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con0.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con2.node->getNameNum() == nameNum2)) {
             outFile << " - IS * N * exp( - N * ( ";
@@ -939,7 +957,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] -= af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con0.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con1.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N * exp( - N * ( ";
@@ -947,7 +965,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] -= af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N / ar * exp( - N * ( ";
@@ -956,7 +974,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] += calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con2.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con0.node->getNameNum() == nameNum2)) {
             outFile << " - IS * N * exp( - N * ( ";
@@ -965,7 +983,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] -= ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con2.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con2.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N / af * exp( - N * ( ";
@@ -974,7 +992,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ')';
             outFile << " ) )";
-            JAC[actualName][nameNum2] += calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con2.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con1.node->getNameNum() == nameNum2)) {
             outFile << " - IS * N / af * exp( - N * ( ";
@@ -982,7 +1000,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] += calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " + ";
             outFile << "IS * N * exp( - N * ( ";
@@ -991,7 +1009,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] -= ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con0.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N * exp( - N * ( ";
@@ -999,7 +1017,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] += ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N / ar * exp( - N * ( ";
@@ -1008,7 +1026,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) ) ";
-            JAC[actualName][nameNum2] -= calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con2.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N * exp( - N * ( ";
@@ -1016,7 +1034,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] += af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N / af * exp( - N * ( ";
@@ -1025,7 +1043,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) )";
-            JAC[actualName][nameNum2] -= calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
         else if ((con1.node->getNameNum() == nameNum1) && (model->getType() == NPN) && (con1.node->getNameNum() == nameNum2)) {
             outFile << " + IS * N / af * exp( - N * ( ";
@@ -1033,7 +1051,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] -= calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N * exp( - N * ( ";
@@ -1041,7 +1059,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con0.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] += ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += ar * calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " - ";
             outFile << "IS * N * exp( - N * ( ";
@@ -1049,7 +1067,7 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
                 outFile << "x(" << con2.node->getNameNum() << ")";
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
-            JAC[actualName][nameNum2] += af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] += af * calculateFe_(X, is, af, n, con2.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
             outFile << " ) )";
             outFile << " + ";
             outFile << "IS * N / ar * exp( - N * ( ";
@@ -1058,22 +1076,25 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
             if (con1.node->getNameNum() != datum)
                 outFile << " - x(" << con1.node->getNameNum() << ")";
             outFile << " ) ) ";
-            JAC[actualName][nameNum2] -= calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
+            JAC[x1][x2] -= calculateFc_(X, is, ar, n, con0.node->getNameNum(), con1.node->getNameNum(), datum, nameNum2);
         }
     }
         // TODO：其他情况的处理
         break;
 
-    case VSource:
+    case VSource: {
+        int _v1 = actualName > datum ? actualName - 1 : actualName;
+        int _v2 = lastnode + getcompNum() > datum ? lastnode + getcompNum() - 1 : lastnode + getcompNum();
         // 因为这边是只考虑KCL方程的，所以需要对nameNum2做一个转变【即这里是对未知电流变量求导】
         if (((con0.node->getNameNum() == actualName) && (con1.node->getNameNum() == nameNum2))) {
-            JAC[actualName][lastnode + getcompNum()] += 1;
+            JAC[_v1][_v2] += 1;
             outFile << " + 1";
         }
         else if((con1.node->getNameNum() == actualName) && (con0.node->getNameNum() == nameNum2)) {
-            JAC[actualName][lastnode + getcompNum()] -= 1;
+            JAC[_v1][_v2] -= 1;
             outFile << " - 1";
         }
+    }
         break;
 
     case ISource:
@@ -1083,14 +1104,17 @@ void Component::genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector
         // TODO：后续学习到再补充处理
         break;
 
-    case Resistor:
+    case Resistor: {
+        int r1 = nameNum1 > datum ? nameNum1 - 1 : nameNum1;
+        int r2 = nameNum2 > datum ? nameNum2 - 1 : nameNum2;
         if (((con0.node->getNameNum() == nameNum1) && (con0.node->getNameNum() == nameNum2)) || ((con1.node->getNameNum() == nameNum1) && (con1.node->getNameNum() == nameNum2))) {
-            JAC[nameNum1][nameNum2] += 1 / value;
+            JAC[r1][r2] += 1 / value;
             outFile << " + 1 / " << name;
         } else if (((con0.node->getNameNum() == nameNum1) && (con1.node->getNameNum() == nameNum2)) || ((con1.node->getNameNum() == nameNum1) && (con0.node->getNameNum() == nameNum2))) {
-            JAC[nameNum1][nameNum2] -= 1 / value;
+            JAC[r1][r2] -= 1 / value;
             outFile << " - 1 / " << name;
         }
+    }
         break;
 
     case Capacitor:

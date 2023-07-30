@@ -12,10 +12,12 @@ namespace evaluation{
     CompHead compList;  // 换言之，如果改变这里的对象内容，并不会对网表实体中的内容造成任何的影响
     ModelHead modelList;
     // Netlist netlist;
+
     // 分析求解相关
     vector<double> F_X, X, X_n;
     vector<double> G, lamda, a; // 同伦法相关使用的变量
     vector<vector<double>> JAC;
+
     string outFileName, title;
     int datum, lastnode, step, total;
     double tran_stop, tran_initialVal;
@@ -51,25 +53,28 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     title = netlist.getTitle();
 
     // 预处理，初始化方程矩阵、雅克比矩阵等
-    X.resize(total);
-    F_X.resize(total);
-    X_n.resize(total);
-    JAC.resize(total);
+    X.resize(total - 1);
+    F_X.resize(total - 1);
+    X_n.resize(total - 1);
+    JAC.resize(total - 1);
     G.resize(total - 1);
-    a.resize(total);
+    a.resize(total - 1);
+
     random_device rd;
     default_random_engine engine(rd());
     uniform_int_distribution<int> distr(RANDOM_MIN, RANDOM_MAX);
-    for (int i = 0; i < total;i++){
+
+    for (int i = 0; i < total - 1;i++) {
         X[i] = distr(engine) * 1.0 / 1000000; // 给X变量赋初值，随机选取初值
         a[i] = X[i];
     }
     fill(F_X.begin(), F_X.end(), 0);
-    for (int i = 0; i < total;i++){
-        JAC[i].resize(total);
+    for (int i = 0; i < total - 1;i++){
+        JAC[i].resize(total - 1);
         fill(JAC[i].begin(), JAC[i].end(), 0);
     }
     fill(G.begin(), G.end(), 1e-3);
+
     lamda.resize(11);
     for (int i = 0; i <= 10;i++) {
         lamda[i] = i * 1.0 / 10;
@@ -79,36 +84,31 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
 // 牛顿迭代过程
 void evaluation::newtonRaphson() {
 
-    // 1. 设置X初始值
+    // 测试，赋予一定的初值
+    test_aq(X, a);
+    
     // 注意电压源引入补偿方程的初值是确定的
+    // 2023/7/30 add：而且还需明确，只有一端接地，才能直接赋值的
     Component *tempComp = compList.getComp(0);
     while(tempComp != NULL) {
         if(tempComp->getType() == VSource) {
-            if(tempComp->getConVal(0) != datum) // 这里的设定有点糙
-                X[tempComp->getConVal(0)] = tempComp->getVal();
-            else
-                X[tempComp->getConVal(1)] = tempComp->getVal();
+            int x1 = tempComp->getConVal(1) > datum ? tempComp->getConVal(1) - 1 : tempComp->getConVal(1);
+            int x0 = tempComp->getConVal(0) > datum ? tempComp->getConVal(0) - 1 : tempComp->getConVal(0);
+            if(tempComp->getConVal(0) == datum) {
+                X[x1] = tempComp->getVal();
+                a[x1] = tempComp->getVal();
+            }   
+            else if(tempComp->getConVal(1) == datum) {
+                X[x0] = tempComp->getVal();
+                a[x0] = tempComp->getVal();
+            }
+                
         }
         tempComp=tempComp->getNext();
     }
 
-    // 测试
-    test_aq(X, a);
-
-    // // 打印测试
     // for (int i = 0; i < X.size(); i++) {
-    //     cout << "X[" << i << "] = " << X[i] << " ";
-    // }
-    // cout << endl;
-    // for (int i = 0; i < X.size(); i++) {
-    //     cout << "F_X[" << i << "] = " << F_X[i] << " ";
-    // }
-    // cout << endl;
-    // for (int i = 0; i < X.size(); i++) {
-    //     for (int j = 0; j < X.size(); j++) {
-    //         cout << "JAC[" << i << "," << j << "] = " << JAC[i][j] << " ";
-    //     }
-    //     cout << endl;
+    //     cout << X[i] << " ";
     // }
 
     // 2. 牛顿迭代开始
@@ -116,79 +116,32 @@ void evaluation::newtonRaphson() {
         cout << endl
              << "     the beginning of " << i + 1 << "th iteration=========================" << endl;
 
-        // for (int i = 0; i < total;i++) {
-        //     if(i == datum) continue;
-        //     cout << "X[" << i << "] = " << X[i] << "      ";
-        // }
-        // cout << endl;
-
         // 2.1 求出jacobian、F（X）等
         generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1);
 
-        // for (int i = 0; i < total; i++) {
-        //     for (int j = 0; j < total; j++)
-        //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
-        //     cout << endl;
-        // }
-
         // 2.2 求出jacobian矩阵的逆矩阵
-        vector<vector<double>> tJAC(total - 1, vector<double>(total - 1, 0));
-        for (int u = 0, x = 0; u < total; u++) {
-            if (u == datum) continue;
-            for (int w = 0, y = 0; w < total; w++) {
-                if (w == datum) continue;
-                tJAC[x][y] = JAC[u][w];
-                y++;
-            }
-            x++;
-        }
-
-        // for (int i = 0; i < total - 1; i++) {
-        //     for (int j = 0; j < total - 1; j++)
-        //         cout << "tJ(" << i << "," << j << ") = " << tJAC[i][j] << " ";
-        //     cout << endl;
-        // }
-
-        // GetMatrixInverse(tJAC);
-        LU_decomposition(tJAC);
+        LU_decomposition(JAC);
 
         cout << endl
              << "==========================================================================" << endl;
 
-        // for (int i = 0; i < total - 1; i++) {
-        //     for (int j = 0; j < total - 1; j++)
-        //         cout << "tJ(" << i << "," << j << ") = " << tJAC[i][j] << " ";
-        //     cout << endl;
-        // }
-
-        // for (int i = 0; i < total; i++) {
-        //     if(i == datum) continue;
-        //     cout << "X[" << i << "] = " << X[i] << "      ";
-        // }
-        // cout << endl;
-
         // 2.3 开始牛顿法迭代计算
-        for (int h = 0, x = 0; h < total; h++) {
-            if (h == datum) continue;
+        for (int x = 0; x < total - 1; x++) {
             double temp = 0;
-            for (int k = 0, y = 0; k < total; k++) {
-                if (k == datum) continue;
-                temp += tJAC[x][y] * F_X[k];
-                y++;
+            for (int y = 0; y < total - 1; y++) {
+                temp += JAC[x][y] * F_X[y];
             }
-            X_n[h] = X[h] - temp;
-            x++;
+            X_n[x] = X[x] - temp;
         }
         cout << endl;
 
         // 2.4 进行迭代退出条件的判断
         Boolean isCorrect = TRUE;
-        for (int j = 0; j < total; j++) {
-            if (j == datum) continue;
-            if (abs(X[j] - X_n[j]) > ERRORGAP) {
+        for (int x = 0; x < total - 1; x++) {
+            if (abs(X[x] - X_n[x]) > ERRORGAP) {
                 isCorrect = FALSE;
             }
-            X[j] = X_n[j];
+            X[x] = X_n[x];
         }
         if (isCorrect == TRUE) {
             isSuccess = TRUE;
@@ -197,7 +150,7 @@ void evaluation::newtonRaphson() {
         step++;
 
         // 2.5 重置为0，进行下一次的迭代
-        for (int j = 0; j < total; j++) {
+        for (int j = 0; j < total - 1; j++) {
             fill(JAC[j].begin(), JAC[j].end(), 0);
             F_X[j] = 0;
         }
@@ -208,9 +161,8 @@ void evaluation::newtonRaphson() {
              << "============In the " << step << "th iteration, the solution is successful==============" << endl;
         cout << endl
              << "========================vector x is followings: ==========================" << endl;
-        for (int i = 0; i < total;i++){
-            if(i == datum) continue;
-            cout << "X[" << i << "] = " << X[i] << "      ";
+        for (int i = 0; i < total - 1; i++){
+            cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
         }
     } else {
         cout << endl
@@ -221,25 +173,40 @@ void evaluation::newtonRaphson() {
 // 同伦法求解过程
 void evaluation::newtonIterHomo() {
 
+    // 测试，赋予一定的初值
+    test_aq(X, a);
+    
     // 注意电压源引入补偿方程的初值是确定的
+    // 2023/7/30 add：而且还需明确，只有一端接地，才能直接赋值的
     Component *tempComp = compList.getComp(0);
     while(tempComp != NULL) {
         if(tempComp->getType() == VSource) {
-            if(tempComp->getConVal(0) != datum) {// 这里的设定有点糙
-                X[tempComp->getConVal(0)] = tempComp->getVal();
-                a[tempComp->getConVal(0)] = tempComp->getVal();
+            // if(tempComp->getConVal(0) != datum) {// 这里的设定有点糙
+            //     X[tempComp->getConVal(0)] = tempComp->getVal();
+            //     a[tempComp->getConVal(0)] = tempComp->getVal();
+            // }   
+            // else {
+            //     X[tempComp->getConVal(1)] = tempComp->getVal();
+            //     a[tempComp->getConVal(1)] = tempComp->getVal();
+            // }
+            int x1 = tempComp->getConVal(1) > datum ? tempComp->getConVal(1) - 1 : tempComp->getConVal(1);
+            int x0 = tempComp->getConVal(0) > datum ? tempComp->getConVal(0) - 1 : tempComp->getConVal(0);
+            if(tempComp->getConVal(0) == datum) {
+                X[x1] = tempComp->getVal();
+                a[x1] = tempComp->getVal();
             }   
-            else {
-                X[tempComp->getConVal(1)] = tempComp->getVal();
-                a[tempComp->getConVal(1)] = tempComp->getVal();
+            else if(tempComp->getConVal(1) == datum) {
+                X[x0] = tempComp->getVal();
+                a[x0] = tempComp->getVal();
             }
                 
         }
         tempComp=tempComp->getNext();
     }
-
-    // 测试
-    test_aq(X, a);
+    
+    // for (int i = 0; i < X.size(); i++) {
+    //     cout << X[i] << " ";
+    // }
 
     // 对要绘图的量进行清空
     x_axis_data.clear();
@@ -261,45 +228,30 @@ void evaluation::newtonIterHomo() {
             
             // 2. 计算H(x, λ) 【这里可能需要再前面得先进行一次求解FX】
             // H(x, λ) = (1 - λ)G(x - a) + λF(x)
-            for (int j = 0; j < total;j++) {
-                if(j == datum) continue;
-                X_n[j] = (1 - lamda[i]) * (1e-3) * (X[j] - a[j]) + lamda[i] * F_X[j];
-                if(abs(X_n[j]) > ERRORGAP) { // 注意这个误差的处理
+            for (int x = 0; x < total - 1; x++) {
+                X_n[x] = (1 - lamda[x]) * (1e-3) * (X[x] - a[x]) + lamda[i] * F_X[x];
+                if(abs(X_n[x]) > ERRORGAP) { // 注意这个误差的处理
                     isSuccess = FALSE;
                 }
             }
             if(isSuccess == TRUE) break;
             
             // 3. 迭代下一个解
-            // 3.1 tJAC矩阵求逆
-            vector<vector<double>> tJAC(total - 1, vector<double>(total - 1, 0));
-            for (int u = 0, x = 0; u < total; u++) {
-                if (u == datum) continue;
-                for (int w = 0, y = 0; w < total; w++) {
-                    if (w == datum) continue;
-                    tJAC[x][y] = lamda[i] * JAC[u][w] + (u == w ? (1 - lamda[i]) * 1e-3 : 0);
-                    y++;
-                }
-                x++;
-            }
-            LU_decomposition(tJAC);
+            // 3.1 JAC矩阵求逆
+            LU_decomposition(JAC);
 
             // 3.2 求解下一个解
             vector<double> temp(X_n);
-            for (int h = 0, x = 0; h < total; h++) {
-                if (h == datum) continue;
+            for (int x = 0; x < total - 1; x++) {
                 double t = 0;
-                for (int k = 0, y = 0; k < total; k++) {
-                    if (k == datum) continue;
-                    t += tJAC[x][y] * temp[k];
-                    y++;
+                for (int y = 0; y < total; y++) {
+                    t += JAC[x][y] * temp[y];
                 }
-                X_n[h] = X[h] - t;
-                x++;
+                X_n[x] = X[x] - t;
             }
 
             // 4. 重置 and 赋值
-            for (int h = 0; h < total; h++) {
+            for (int h = 0; h < total - 1; h++) {
                 X[h] = X_n[h];
                 fill(JAC[h].begin(), JAC[h].end(), 0);
                 F_X[h] = 0;
@@ -313,17 +265,15 @@ void evaluation::newtonIterHomo() {
         
         // 设置要绘图的量
         x_axis_data.push_back(lamda[i]);
-        for (int j = 0, h = 0; j < total; j++) {
-            if (j == datum) continue;
+        for (int j = 0, h = 0; j < total - 1; j++) {
             y_axis_data[h++].push_back(X[j]);
         }
     }
 
     cout << endl
          << "========================vector x is followings: ==========================" << endl;
-    for (int i = 0; i < total; i++) {
-        if (i == datum) continue;
-        cout << "X[" << i << "] = " << X[i] << "      ";
+    for (int i = 0; i < total - 1; i++){
+        cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
     }
 
     // 开始绘图
@@ -418,7 +368,7 @@ void evaluation::analysisProcess() {
 // 测试赋值
 void evaluation::test_aq(vector<double>& X, vector<double>& a) {
     vector<vector<double>> all_inival;
-    string path = "..\\testcase\\testcase3\\Initial_val3.txt"; // 文件路径
+    string path = "..\\testcase\\testcase1\\Initial_val1.txt"; // 文件路径
     char *line = (char *)malloc(sizeof(char) * 1024);
     char *p;
     FILE *fp = fopen(path.c_str(), "r");
@@ -431,7 +381,7 @@ void evaluation::test_aq(vector<double>& X, vector<double>& a) {
         p = strtok(line, " ");
         if (isdigit(p[0])) {
             vector<double> t;
-            t.push_back(0);
+            // t.push_back(0);
             while (p != NULL) {
                 t.push_back(strtod(p, NULL));
                 p  = strtok(NULL, " ");
@@ -446,7 +396,7 @@ void evaluation::test_aq(vector<double>& X, vector<double>& a) {
         a[i] = X[i] = all_inival[0][i];
         // cout << X[i] << " ";
     }
-    // cout << endl;
+    // cout << X.size() << endl;
 
     return;
 }
