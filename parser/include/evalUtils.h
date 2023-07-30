@@ -229,7 +229,10 @@ void evaluation::newtonIterHomo() {
             // 2. 计算H(x, λ) 【这里可能需要再前面得先进行一次求解FX】
             // H(x, λ) = (1 - λ)G(x - a) + λF(x)
             for (int x = 0; x < total - 1; x++) {
-                X_n[x] = (1 - lamda[x]) * (1e-3) * (X[x] - a[x]) + lamda[i] * F_X[x];
+                X_n[x] = (1 - lamda[i]) * (1e-3) * (X[x] - a[x]) + lamda[i] * F_X[x];
+                for (int y = 0; y < total - 1; y++) {
+                    JAC[x][y] = lamda[i] * JAC[x][y] + (x == y ? (1 - lamda[i]) * 1e-3 : 0);
+                }
                 if(abs(X_n[x]) > ERRORGAP) { // 注意这个误差的处理
                     isSuccess = FALSE;
                 }
@@ -244,7 +247,7 @@ void evaluation::newtonIterHomo() {
             vector<double> temp(X_n);
             for (int x = 0; x < total - 1; x++) {
                 double t = 0;
-                for (int y = 0; y < total; y++) {
+                for (int y = 0; y < total - 1; y++) {
                     t += JAC[x][y] * temp[y];
                 }
                 X_n[x] = X[x] - t;
