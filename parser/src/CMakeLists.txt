@@ -1,6 +1,7 @@
 # 注意，在这里键入你的python安装包的include文件夹路径
 include_directories("D:/Anaconda3/include")
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/3rd_lib/eigen-3.4.0)
 
 # 注意，在这里键入你的python安装包的libs文件夹路径
 link_directories("D:/Anaconda3/libs") 

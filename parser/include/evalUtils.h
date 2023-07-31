@@ -1,5 +1,6 @@
 #include "parser_v2.h"
 #include "getInverseMatrix.h"
+#include <Eigen/Dense>
 #include <random>
 #include <Python.h>
 
@@ -14,9 +15,14 @@ namespace evaluation{
     // Netlist netlist;
 
     // 分析求解相关
+    vector<double> lamda;
     vector<double> F_X, X, X_n;
-    vector<double> G, lamda, a; // 同伦法相关使用的变量
+    vector<double> G, a; // 同伦法相关使用的变量
     vector<vector<double>> JAC;
+#ifdef USE_EIGEN_SJT
+    Eigen::MatrixXd _JAC, _G;
+    Eigen::VectorXd _F_X, _X, _X_n, _a;
+#endif
 
     string outFileName, title;
     int datum, lastnode, step, total;
@@ -59,6 +65,15 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     JAC.resize(total - 1);
     G.resize(total - 1);
     a.resize(total - 1);
+#ifdef USE_EIGEN_SJT
+    _JAC.resize(total - 1, total - 1);
+    _G.resize(total - 1, total - 1);
+    _F_X.resize(total - 1);
+    _X.resize(total - 1);
+    _X_n.resize(total - 1);
+    _a.resize(total - 1);
+#endif
+    
 
     random_device rd;
     default_random_engine engine(rd());
@@ -74,6 +89,16 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
         fill(JAC[i].begin(), JAC[i].end(), 0);
     }
     fill(G.begin(), G.end(), 1e-3);
+
+#ifdef USE_EIGEN_SJT
+    for (int i = 0; i < total - 1;i++) {
+        _a(i) = _X(i) = distr(engine) * 1.0 / 1000000; // 给X变量赋初值，随机选取初值
+    }
+    _F_X.setZero();
+    _JAC.setZero();
+    _X_n.setZero();
+    _G.diagonal().setConstant(1e-3);
+#endif
 
     lamda.resize(11);
     for (int i = 0; i <= 10;i++) {
@@ -96,13 +121,10 @@ void evaluation::newtonRaphson() {
             int x0 = tempComp->getConVal(0) > datum ? tempComp->getConVal(0) - 1 : tempComp->getConVal(0);
             if(tempComp->getConVal(0) == datum) {
                 X[x1] = tempComp->getVal();
-                a[x1] = tempComp->getVal();
             }   
             else if(tempComp->getConVal(1) == datum) {
                 X[x0] = tempComp->getVal();
-                a[x0] = tempComp->getVal();
             }
-                
         }
         tempComp=tempComp->getNext();
     }
@@ -110,6 +132,7 @@ void evaluation::newtonRaphson() {
     // for (int i = 0; i < X.size(); i++) {
     //     cout << X[i] << " ";
     // }
+    // cout << endl;
 
     // 2. 牛顿迭代开始
     for (int i = 0; i < ITERATIONNUMS; i++) {
@@ -119,6 +142,13 @@ void evaluation::newtonRaphson() {
         // 2.1 求出jacobian、F（X）等
         generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1);
 
+        // for (int i = 0; i < total - 1; i++) {
+        //     for (int j = 0; j < total - 1; j++)
+        //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
+        //     cout << endl;
+        // }
+    
+    #ifndef USE_EIGEN_SJT
         // 2.2 求出jacobian矩阵的逆矩阵
         LU_decomposition(JAC);
 
@@ -154,6 +184,34 @@ void evaluation::newtonRaphson() {
             fill(JAC[j].begin(), JAC[j].end(), 0);
             F_X[j] = 0;
         }
+    #else
+        for (size_t hh = 0; hh < F_X.size(); ++hh) {
+            _F_X(hh) = F_X[hh];
+            _X(hh) = X[hh];
+        }
+        for (size_t hh = 0; hh < JAC.size(); ++hh) {
+            for (size_t kk = 0; kk < JAC[0].size(); ++kk) {
+                _JAC(hh, kk) = JAC[hh][kk];
+            }
+        }
+        // _F_X = Eigen::Map<Eigen::VectorXd>(F_X.data(), F_X.size());
+        // _X = Eigen::Map<Eigen::VectorXd>(X.data(), X.size());
+        // _JAC = Eigen::MatrixXd::Map(JAC[0].data(), JAC.size(), JAC[0].size());
+        _X_n = _X - _JAC.colPivHouseholderQr().solve(_F_X);
+
+        if ((_X_n - _X).norm() < ERRORGAP) {
+            isSuccess = TRUE;
+            break;
+        }
+
+        step++;
+
+        for (int j = 0; j < total - 1; j++) {
+            fill(JAC[j].begin(), JAC[j].end(), 0);
+            F_X[j] = 0;
+            X[j] = _X_n(j);
+        }
+    #endif
     }
 
     if(isSuccess == TRUE) {
@@ -175,7 +233,11 @@ void evaluation::newtonIterHomo() {
 
     // 测试，赋予一定的初值
     test_aq(X, a);
-    
+
+#ifdef USE_EIGEN_SJT
+    _a = Eigen::Map<Eigen::VectorXd>(a.data(), a.size());
+#endif
+
     // 注意电压源引入补偿方程的初值是确定的
     // 2023/7/30 add：而且还需明确，只有一端接地，才能直接赋值的
     Component *tempComp = compList.getComp(0);
@@ -225,7 +287,13 @@ void evaluation::newtonIterHomo() {
             
             // 1. 计算jacobian矩阵 和 F_X
             generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step);
-            
+            // for (int i = 0; i < total - 1; i++) {
+            //     for (int j = 0; j < total - 1; j++)
+            //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
+            //     cout << endl;
+            // }
+        
+        #ifndef USE_EIGEN_SJT
             // 2. 计算H(x, λ) 【这里可能需要再前面得先进行一次求解FX】
             // H(x, λ) = (1 - λ)G(x - a) + λF(x)
             for (int x = 0; x < total - 1; x++) {
@@ -259,6 +327,37 @@ void evaluation::newtonIterHomo() {
                 fill(JAC[h].begin(), JAC[h].end(), 0);
                 F_X[h] = 0;
             }
+        #else
+            for (size_t hh = 0; hh < F_X.size(); ++hh) {
+                _F_X(hh) = F_X[hh];
+                _X(hh) = X[hh];
+            }
+            // _F_X = Eigen::Map<Eigen::VectorXd>(F_X.data(), F_X.size());
+            // _X = Eigen::Map<Eigen::VectorXd>(X.data(), X.size());
+            // _JAC = Eigen::Map<Eigen::MatrixXd>(&(JAC[0][0]), JAC.size(), JAC[0].size()); // 这种赋值方式感觉会出错，因为地址是不连续的码？
+            for (size_t hh = 0; hh < JAC.size(); ++hh) {
+                for (size_t kk = 0; kk < JAC[0].size(); ++kk) {
+                    _JAC(hh, kk) = lamda[i] * JAC[hh][kk] + (hh == kk ? (1 - lamda[i]) * 1e-3 : 0);
+                }
+            }
+            // cout << _F_X << "----" << endl << _X << "----" << endl << _JAC << endl;
+
+            // _X = _X - _JAC.colPivHouseholderQr().solve(_F_X);
+
+            _X_n = (1 - lamda[i]) * _G * (_X - _a) + lamda[i] * _F_X;
+
+            if (_X_n.norm() < ERRORGAP) break;
+
+            _JAC = _JAC.inverse();
+
+            _X = _X - _JAC * _X_n;
+
+            for (int h = 0; h < total - 1; h++) {
+                X[h] = _X(h);
+                fill(JAC[h].begin(), JAC[h].end(), 0);
+                F_X[h] = 0;
+            }
+        #endif
             cout << endl
                  << "     step " << step << "th iteration end.----" << endl;
             step++;
@@ -360,18 +459,17 @@ void evaluation::analysisProcess() {
         tranProcess();
         break;
     case DC:
-        // newtonRaphson();
-        newtonIterHomo();
+        newtonRaphson();
+        // newtonIterHomo();
         break;
     case AC:
         break;
     }
 }
 
-// 测试赋值
-void evaluation::test_aq(vector<double>& X, vector<double>& a) {
+void evaluation::test_aq(vector<double> &X, vector<double> &a) {
     vector<vector<double>> all_inival;
-    string path = "..\\testcase\\testcase1\\Initial_val1.txt"; // 文件路径
+    string path = "..\\testcase\\testcase3\\Initial_val3.txt"; // 文件路径
     char *line = (char *)malloc(sizeof(char) * 1024);
     char *p;
     FILE *fp = fopen(path.c_str(), "r");
