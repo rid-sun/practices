@@ -35,7 +35,7 @@ outFile: 输出信息文件名
 一个例子
 
 ```bash
-parser -f ../testcase/testcase4/Netlist4.txt -d 0 -o output
+parser -f ../testcase/testcase3/Netlist3.txt -d 0 -o output
 ```
 
 结果就是上面的 [`example`](#parser) 图示一样
