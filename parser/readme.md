@@ -22,6 +22,9 @@ cmake .. [-DUSE_EIGEN_SJT=OFF]
 make
 ```
 > windows构建可使用`vscode + cmake`来完成
+
+3. 本项目构建引入了第三方库`Eigen`，所以需要**自行**下载`Eigen`到项目根目录下。具体路径为：`parser/3rd_lib/eigen-3.4.0`
+
 ## Usage
 
 ```bash
@@ -35,7 +38,7 @@ outFile: 输出信息文件名
 一个例子
 
 ```bash
-parser -f ../testcase/testcase3/Netlist3.txt -d 0 -o output
+parser -f ../testcase/testcase4/Netlist4.txt -d 0 -o output
 ```
 
 结果就是上面的 [`example`](#parser) 图示一样
@@ -43,7 +46,7 @@ parser -f ../testcase/testcase3/Netlist3.txt -d 0 -o output
 ## Todo
 
 1. 瞬态分析的实现是一个小的`demo`，简单地使用后向欧拉离散迭代来做，适用性可作修正提升
-2. 对于求解矩阵`Ax=b`的方式需要作进一步的优化改进
+2. 对于填充矩阵，可以进行修正，避免多次重复填充
 
 ## Problems
 
