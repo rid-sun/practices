@@ -24,6 +24,14 @@ namespace evaluation{
     Eigen::VectorXd _F_X, _X, _X_n, _a;
 #endif
 
+    // Ptran相关
+    unordered_map<int, double> pre_u, pre_i;
+    const double capval = 0.1, indval = 0.1;
+    const int maxNR = 10;
+    const double minstep = 0.0001;
+    const double endstep = 1e20;
+    const char *outpath = "ptran.txt";
+
     string outFileName, title;
     int datum, lastnode, step, total;
     double tran_stop, tran_initialVal;
@@ -40,6 +48,10 @@ namespace evaluation{
     void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
+    double getNorm(vector<double>& X, vector<double>& X_n);
+#ifdef USE_EIGEN_SJT
+    void ptran();
+#endif
     void analysisProcess();
     void preparation(Netlist &netlist, string outFileName);
 }
@@ -140,7 +152,7 @@ void evaluation::newtonRaphson() {
              << "     the beginning of " << i + 1 << "th iteration=========================" << endl;
 
         // 2.1 求出jacobian、F（X）等
-        generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1);
+        generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1, pre_u, pre_i, capval, indval, 1, DC_NR);
 
         // for (int i = 0; i < total - 1; i++) {
         //     for (int j = 0; j < total - 1; j++)
@@ -286,7 +298,7 @@ void evaluation::newtonIterHomo() {
             Boolean isSuccess = TRUE;
             
             // 1. 计算jacobian矩阵 和 F_X
-            generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step);
+            generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step, pre_u, pre_i, capval, indval, 1, DC_NR);
             // for (int i = 0; i < total - 1; i++) {
             //     for (int j = 0; j < total - 1; j++)
             //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
@@ -386,6 +398,110 @@ void evaluation::newtonIterHomo() {
     }
 }
 
+#ifdef USE_EIGEN_SJT
+// ptran过程
+void evaluation::ptran() {
+    fill(X.begin(), X.end(), 0);
+    double stepsize = 1;
+    double total_steps = 0;
+    bool conv = true;
+    int stepno = 0;
+    while (true) {
+        // 0. 限制数值积分求解次数，超过则视为ptran求解不收敛
+        stepno++;
+        total_steps += stepsize;
+        if (total_steps > endstep) {
+            cout << "\ntimeout notconverage!\n";
+            conv = false;
+            break;
+        }
+        if (stepsize < minstep) {
+            cout << "\ntimestep too small, abort!\n";
+            conv = false;
+            break;
+        }
+
+        // 1. 先保留当前时间步的X的初值
+        for (int i = 0; i < datum; i++)
+            pre_i[i] = pre_u[i] = X[i];
+        for (int i = datum; i < X.size(); i++)
+            pre_i[i + 1] = pre_u[i + 1] = X[i];
+        fill(X_n.begin(), X_n.end(), 0);
+        // X_n[0] = 0.7, X_n[1] = 0.6, X_n[2] = 10, X_n[3] = 0.7, X_n[4] = 1.5, X_n[5] = 10, X_n[6] = -0.004, X_n[7] = -0.0021;
+        fill(F_X.begin(), F_X.end(), 0);
+        for (int i = 0; i < JAC.size(); i++)
+            fill(JAC[i].begin(), JAC[i].end(), 0);
+
+        // 2. 在当前时刻开始NR迭代求解
+        bool isSuccess = false;
+        int iters = 0;
+        for (iters = 0; iters < maxNR * 5; iters++) {
+            generateMatrix(nodeList, compList, modelList, F_X, X_n, JAC, outFileName, datum, lastnode, iters + 1, pre_u, pre_i, capval, indval, stepsize, DC_PTran);
+            for (size_t hh = 0; hh < F_X.size(); ++hh) { // 赋值
+                _F_X(hh) = F_X[hh];
+                _X(hh) = X_n[hh];
+            }
+            for (size_t hh = 0; hh < JAC.size(); ++hh) { // 赋值
+                for (size_t kk = 0; kk < JAC[0].size(); ++kk) {
+                    _JAC(hh, kk) = JAC[hh][kk];
+                }
+            }
+            _X_n = _X - _JAC.colPivHouseholderQr().solve(_F_X);
+
+            for (int h = 0; h < JAC.size(); h++) {
+                X_n[h] = _X_n(h);
+                fill(JAC[h].begin(), JAC[h].end(), 0);
+                F_X[h] = 0;
+            }
+
+            if ((_X_n - _X).norm() < ERRORGAP) {
+                isSuccess = true;
+                break;
+            }
+        }
+        
+        // 3. 记录信息
+        FILE *fp = fopen(outpath, "a+");
+        if (fp == NULL) {
+            perror("Failed to open file");
+        } else {
+            fprintf(fp, "stepno=%5d, timepoints=%10e, conv=%d, iters=%2d, x=", stepno, total_steps, isSuccess ? 0 : 1, iters);
+            if (isSuccess) {
+                for (int i = 0; i < total - 1; i++){
+                    fprintf(fp, "%7e ", X_n[i]);
+                }
+            }
+            fprintf(fp, "\n");
+            fclose(fp);
+        }
+
+        // 4. 步长处理
+        if (!isSuccess) {
+            total_steps -= stepsize; // 回退
+            stepsize /= 2;
+        } else {
+            stepsize *= 2;
+            if (getNorm(X, X_n) <= ERRORGAP) {
+                conv = true;
+                break;
+            }
+            for (int i = 0; i < X.size(); i++)
+                X[i] = X_n[i];
+        }
+    }
+
+    // 收敛
+    if (conv) {
+        cout << endl
+            << "========================vector x is followings: ==========================" << endl;
+        for (int i = 0; i < total - 1; i++){
+            cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
+        }
+        cout << endl;
+    }
+}
+#endif
+
 // 进行tran分析的处理
 /* TODO：需要做一个更普适性的工作 */
 /* 目前有以下限制：
@@ -458,13 +574,28 @@ void evaluation::analysisProcess() {
     case TRAN:
         tranProcess();
         break;
-    case DC:
-        newtonRaphson();
-        // newtonIterHomo();
+    case DC_NR:
+        // newtonRaphson();
+        newtonIterHomo();
+        break;
+    case DC_PTran:
+    #ifdef USE_EIGEN_SJT
+        ptran();
+    #else
+        printf("\neigen is closed\n");
+    #endif
         break;
     case AC:
         break;
     }
+}
+
+double evaluation::getNorm(vector<double>& X, vector<double>& X_n) {
+    double t = 0;
+    for (int i = 0; i < X.size(); i++) {
+        t += (X[i] - X_n[i]) * (X[i] - X_n[i]);
+    }
+    return sqrt(t);
 }
 
 void evaluation::test_aq(vector<double> &X, vector<double> &a) {

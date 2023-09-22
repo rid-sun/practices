@@ -1,17 +1,113 @@
-Title: * 测试tran的电路
-datum = 0        lastnode = 2
-节点1        所连器件数为：2
-        编号：1    类型：VSource 连接端口：0    名称：VCC
-        value: 3
-        编号：1    类型：Resistor 连接端口：0    名称：R1
-        value: 1000
-节点0        所连器件数为：2
-        编号：1    类型：VSource 连接端口：1    名称：VCC
-        value: 3
-        编号：1    类型：Capacitor 连接端口：1    名称：C1
-        value: 1e-05
+Title: * Chua Circuit  
+datum = 0        lastnode = 14
+节点13        所连器件数为：3
+        编号：1    类型：VSource 连接端口：0    名称：VCC1
+        value: 12
+        编号：2    类型：Resistor 连接端口：1    名称：R2
+        value: 4000
+        编号：11    类型：Resistor 连接端口：0    名称：R11
+        value: 4000
+节点0        所连器件数为：7
+        编号：1    类型：VSource 连接端口：1    名称：VCC1
+        value: 12
+        编号：2    类型：VSource 连接端口：1    名称：VCC2
+        value: 12
+        编号：4    类型：Resistor 连接端口：1    名称：R4
+        value: 5000
+        编号：6    类型：Resistor 连接端口：1    名称：R6
+        value: 500
+        编号：7    类型：Resistor 连接端口：1    名称：R7
+        value: 500
+        编号：9    类型：Resistor 连接端口：1    名称：R9
+        value: 10100
+        编号：10    类型：Resistor 连接端口：1    名称：R10
+        value: 10100
+节点14        所连器件数为：3
+        编号：2    类型：VSource 连接端口：0    名称：VCC2
+        value: 12
+        编号：3    类型：Resistor 连接端口：1    名称：R3
+        value: 4000
+        编号：12    类型：Resistor 连接端口：0    名称：R12
+        value: 4000
+节点1        所连器件数为：4
+        编号：3    类型：VSource 连接端口：0    名称：V1
+        value: 10
+        编号：4    类型：Resistor 连接端口：0    名称：R4
+        value: 5000
+        编号：1    类型：BJT 连接端口：1    名称：Q1
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+        编号：3    类型：BJT 连接端口：1    名称：Q3
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
 节点2        所连器件数为：2
+        编号：3    类型：VSource 连接端口：1    名称：V1
+        value: 10
+        编号：1    类型：Resistor 连接端口：0    名称：R1
+        value: 10000
+节点11        所连器件数为：2
+        编号：4    类型：VSource 连接端口：0    名称：V2
+        value: 2
+        编号：14    类型：Resistor 连接端口：1    名称：R14
+        value: 30000
+节点3        所连器件数为：3
+        编号：4    类型：VSource 连接端口：1    名称：V2
+        value: 2
         编号：1    类型：Resistor 连接端口：1    名称：R1
-        value: 1000
-        编号：1    类型：Capacitor 连接端口：0    名称：C1
-        value: 1e-05
+        value: 10000
+        编号：13    类型：Resistor 连接端口：1    名称：R13
+        value: 30000
+节点4        所连器件数为：3
+        编号：2    类型：Resistor 连接端口：0    名称：R2
+        value: 4000
+        编号：5    类型：Resistor 连接端口：0    名称：R5
+        value: 30000
+        编号：1    类型：BJT 连接端口：0    名称：Q1
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点5        所连器件数为：3
+        编号：3    类型：Resistor 连接端口：0    名称：R3
+        value: 4000
+        编号：8    类型：Resistor 连接端口：0    名称：R8
+        value: 30000
+        编号：3    类型：BJT 连接端口：0    名称：Q3
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点6        所连器件数为：3
+        编号：5    类型：Resistor 连接端口：1    名称：R5
+        value: 30000
+        编号：9    类型：Resistor 连接端口：0    名称：R9
+        value: 10100
+        编号：2    类型：BJT 连接端口：1    名称：Q2
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点8        所连器件数为：3
+        编号：6    类型：Resistor 连接端口：0    名称：R6
+        value: 500
+        编号：1    类型：BJT 连接端口：2    名称：Q1
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+        编号：2    类型：BJT 连接端口：2    名称：Q2
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点9        所连器件数为：3
+        编号：7    类型：Resistor 连接端口：0    名称：R7
+        value: 500
+        编号：3    类型：BJT 连接端口：2    名称：Q3
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+        编号：4    类型：BJT 连接端口：2    名称：Q4
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点7        所连器件数为：3
+        编号：8    类型：Resistor 连接端口：1    名称：R8
+        value: 30000
+        编号：10    类型：Resistor 连接端口：0    名称：R10
+        value: 10100
+        编号：4    类型：BJT 连接端口：1    名称：Q4
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点10        所连器件数为：3
+        编号：11    类型：Resistor 连接端口：1    名称：R11
+        value: 4000
+        编号：13    类型：Resistor 连接端口：0    名称：R13
+        value: 30000
+        编号：2    类型：BJT 连接端口：0    名称：Q2
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78
+节点12        所连器件数为：3
+        编号：12    类型：Resistor 连接端口：1    名称：R12
+        value: 4000
+        编号：14    类型：Resistor 连接端口：0    名称：R14
+        value: 30000
+        编号：4    类型：BJT 连接端口：0    名称：Q4
+        value: IS = 1e-09  AF = 0.990099  AR = 0.5  N = 38.78

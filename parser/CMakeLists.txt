@@ -5,7 +5,7 @@ project(parser VERSION 0.1.0)
 option(USE_EIGEN_SJT "USE_EIGEN_SJT" ON)
 message(STATUS "USE_EIGEN_SJT: ${USE_EIGEN_SJT}")
 if(USE_EIGEN_SJT)
-    set(USE_EIGEN_SJT TRUE)
+    add_compile_definitions(USE_EIGEN_SJT)
 endif()
 
 # 创建out并复制输出

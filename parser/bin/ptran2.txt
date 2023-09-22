@@ -1,0 +1,187 @@
+stepno=    1, timepoints=1.000000e+00, conv=0, iters= 2, x=2.711089e-15 6.615951e-02 9.900990e-02 6.609276e-05 1.980198e-02 1.000000e+01 -1.851959e-02 
+stepno=    2, timepoints=3.000000e+00, conv=0, iters= 2, x=2.028696e-14 1.964932e-01 2.931651e-01 4.581537e-04 5.863302e-02 1.000093e+01 -1.823251e-02 
+stepno=    3, timepoints=7.000000e+00, conv=0, iters= 2, x=5.249926e-13 4.493994e-01 6.665225e-01 2.246675e-03 1.333045e-01 1.000046e+01 -1.767473e-02 
+stepno=    4, timepoints=1.500000e+01, conv=0, iters= 2, x=1.686036e-10 9.260250e-01 1.357908e+00 9.577489e-03 2.715815e-01 1.000022e+01 -1.663751e-02 
+stepno=    5, timepoints=3.100000e+01, conv=0, iters= 2, x=2.413278e-06 1.775500e+00 2.549935e+00 3.738140e-02 5.099869e-01 1.000010e+01 -1.483126e-02 
+stepno=    6, timepoints=6.300000e+01, conv=0, iters= 7, x=9.186145e-02 2.835240e+00 4.356022e+00 1.240982e-01 8.683105e-01 1.000005e+01 -1.224690e-02 
+stepno=    7, timepoints=1.270000e+02, conv=0, iters=23, x=4.744683e-01 2.504692e+00 6.558558e+00 2.671311e-01 1.289305e+00 1.000002e+01 -1.018049e-02 
+stepno=    8, timepoints=2.550000e+02, conv=1, iters=50, x=
+stepno=    9, timepoints=1.910000e+02, conv=0, iters=30, x=7.139857e-01 1.362649e+00 7.901566e+00 3.328267e-01 1.537617e+00 1.000002e+01 -9.549165e-03 
+stepno=   10, timepoints=3.190000e+02, conv=1, iters=50, x=
+stepno=   11, timepoints=2.550000e+02, conv=0, iters=35, x=7.323894e-01 8.127407e-01 8.720473e+00 3.614763e-01 1.556618e+00 1.000001e+01 -9.093071e-03 
+stepno=   12, timepoints=3.830000e+02, conv=1, iters=50, x=
+stepno=   13, timepoints=3.190000e+02, conv=0, iters=35, x=6.856807e-01 7.547596e-01 9.219806e+00 3.849009e-01 1.508491e+00 1.000001e+01 -8.642013e-03 
+stepno=   14, timepoints=4.470000e+02, conv=1, iters=50, x=
+stepno=   15, timepoints=3.830000e+02, conv=0, iters=34, x=6.711645e-01 7.416987e-01 9.524277e+00 4.061182e-01 1.493509e+00 1.000001e+01 -8.349242e-03 
+stepno=   16, timepoints=5.110000e+02, conv=1, iters=50, x=
+stepno=   17, timepoints=4.470000e+02, conv=0, iters=34, x=6.671806e-01 7.382975e-01 9.709930e+00 4.258427e-01 1.489395e+00 1.000001e+01 -8.166683e-03 
+stepno=   18, timepoints=5.750000e+02, conv=1, iters=50, x=
+stepno=   19, timepoints=5.110000e+02, conv=0, iters=34, x=6.661804e-01 7.374786e-01 9.823133e+00 4.443205e-01 1.488362e+00 1.000001e+01 -8.054232e-03 
+stepno=   20, timepoints=6.390000e+02, conv=0, iters=39, x=6.660877e-01 7.374664e-01 9.922430e+00 4.770439e-01 1.488266e+00 1.000001e+01 -7.954950e-03 
+stepno=   21, timepoints=8.950000e+02, conv=1, iters=50, x=
+stepno=   22, timepoints=7.670000e+02, conv=1, iters=50, x=
+stepno=   23, timepoints=7.030000e+02, conv=0, iters=34, x=6.661687e-01 7.375672e-01 9.952706e+00 4.924183e-01 1.488350e+00 1.000001e+01 -7.924602e-03 
+stepno=   24, timepoints=8.310000e+02, conv=1, iters=50, x=
+stepno=   25, timepoints=7.670000e+02, conv=0, iters=34, x=6.662792e-01 7.376913e-01 9.971167e+00 5.068667e-01 1.488464e+00 1.000001e+01 -7.906035e-03 
+stepno=   26, timepoints=8.950000e+02, conv=1, iters=50, x=
+stepno=   27, timepoints=8.310000e+02, conv=0, iters=34, x=6.663927e-01 7.378162e-01 9.982424e+00 5.204453e-01 1.488581e+00 1.000001e+01 -7.894672e-03 
+stepno=   28, timepoints=9.590000e+02, conv=1, iters=50, x=
+stepno=   29, timepoints=8.950000e+02, conv=0, iters=34, x=6.665020e-01 7.379358e-01 9.989288e+00 5.332068e-01 1.488694e+00 1.000001e+01 -7.887706e-03 
+stepno=   30, timepoints=1.023000e+03, conv=1, iters=50, x=
+stepno=   31, timepoints=9.590000e+02, conv=0, iters=34, x=6.666054e-01 7.380488e-01 9.993473e+00 5.452001e-01 1.488800e+00 1.000001e+01 -7.883424e-03 
+stepno=   32, timepoints=1.087000e+03, conv=1, iters=50, x=
+stepno=   33, timepoints=1.023000e+03, conv=0, iters=34, x=6.667029e-01 7.381552e-01 9.996025e+00 5.564717e-01 1.488901e+00 1.000001e+01 -7.880781e-03 
+stepno=   34, timepoints=1.151000e+03, conv=1, iters=50, x=
+stepno=   35, timepoints=1.087000e+03, conv=0, iters=34, x=6.667945e-01 7.382552e-01 9.997581e+00 5.670650e-01 1.488996e+00 1.000001e+01 -7.879139e-03 
+stepno=   36, timepoints=1.215000e+03, conv=1, iters=50, x=
+stepno=   37, timepoints=1.151000e+03, conv=0, iters=34, x=6.668807e-01 7.383493e-01 9.998530e+00 5.770207e-01 1.489084e+00 1.000001e+01 -7.878110e-03 
+stepno=   38, timepoints=1.279000e+03, conv=1, iters=50, x=
+stepno=   39, timepoints=1.215000e+03, conv=0, iters=34, x=6.669616e-01 7.384377e-01 9.999108e+00 5.863773e-01 1.489168e+00 1.000001e+01 -7.877455e-03 
+stepno=   40, timepoints=1.343000e+03, conv=1, iters=50, x=
+stepno=   41, timepoints=1.279000e+03, conv=0, iters=34, x=6.670377e-01 7.385208e-01 9.999461e+00 5.951708e-01 1.489247e+00 1.000001e+01 -7.877032e-03 
+stepno=   42, timepoints=1.407000e+03, conv=1, iters=50, x=
+stepno=   43, timepoints=1.343000e+03, conv=0, iters=34, x=6.671092e-01 7.385988e-01 9.999676e+00 6.034351e-01 1.489320e+00 1.000001e+01 -7.876750e-03 
+stepno=   44, timepoints=1.471000e+03, conv=1, iters=50, x=
+stepno=   45, timepoints=1.407000e+03, conv=0, iters=34, x=6.671764e-01 7.386722e-01 9.999807e+00 6.112020e-01 1.489390e+00 1.000001e+01 -7.876556e-03 
+stepno=   46, timepoints=1.535000e+03, conv=1, iters=50, x=
+stepno=   47, timepoints=1.471000e+03, conv=0, iters=34, x=6.672396e-01 7.387412e-01 9.999887e+00 6.185015e-01 1.489455e+00 1.000001e+01 -7.876417e-03 
+stepno=   48, timepoints=1.599000e+03, conv=1, iters=50, x=
+stepno=   49, timepoints=1.535000e+03, conv=0, iters=34, x=6.672990e-01 7.388060e-01 9.999936e+00 6.253617e-01 1.489516e+00 1.000001e+01 -7.876312e-03 
+stepno=   50, timepoints=1.663000e+03, conv=1, iters=50, x=
+stepno=   51, timepoints=1.599000e+03, conv=0, iters=34, x=6.673547e-01 7.388669e-01 9.999966e+00 6.318090e-01 1.489574e+00 1.000001e+01 -7.876231e-03 
+stepno=   52, timepoints=1.727000e+03, conv=1, iters=50, x=
+stepno=   53, timepoints=1.663000e+03, conv=0, iters=34, x=6.674072e-01 7.389241e-01 9.999984e+00 6.378684e-01 1.489628e+00 1.000001e+01 -7.876163e-03 
+stepno=   54, timepoints=1.791000e+03, conv=1, iters=50, x=
+stepno=   55, timepoints=1.727000e+03, conv=0, iters=34, x=6.674565e-01 7.389779e-01 9.999995e+00 6.435630e-01 1.489679e+00 1.000001e+01 -7.876106e-03 
+stepno=   56, timepoints=1.855000e+03, conv=1, iters=50, x=
+stepno=   57, timepoints=1.791000e+03, conv=0, iters=34, x=6.675028e-01 7.390285e-01 1.000000e+01 6.489150e-01 1.489727e+00 1.000001e+01 -7.876056e-03 
+stepno=   58, timepoints=1.919000e+03, conv=1, iters=50, x=
+stepno=   59, timepoints=1.855000e+03, conv=0, iters=34, x=6.675463e-01 7.390760e-01 1.000001e+01 6.539449e-01 1.489772e+00 1.000001e+01 -7.876012e-03 
+stepno=   60, timepoints=1.983000e+03, conv=1, iters=50, x=
+stepno=   61, timepoints=1.919000e+03, conv=0, iters=34, x=6.675872e-01 7.391207e-01 1.000001e+01 6.586720e-01 1.489814e+00 1.000001e+01 -7.875971e-03 
+stepno=   62, timepoints=2.047000e+03, conv=1, iters=50, x=
+stepno=   63, timepoints=1.983000e+03, conv=0, iters=34, x=6.676256e-01 7.391626e-01 1.000001e+01 6.631147e-01 1.489853e+00 1.000001e+01 -7.875933e-03 
+stepno=   64, timepoints=2.111000e+03, conv=1, iters=50, x=
+stepno=   65, timepoints=2.047000e+03, conv=0, iters=34, x=6.676618e-01 7.392021e-01 1.000001e+01 6.672900e-01 1.489891e+00 1.000001e+01 -7.875899e-03 
+stepno=   66, timepoints=2.175000e+03, conv=1, iters=50, x=
+stepno=   67, timepoints=2.111000e+03, conv=0, iters=34, x=6.676957e-01 7.392392e-01 1.000001e+01 6.712140e-01 1.489926e+00 1.000001e+01 -7.875866e-03 
+stepno=   68, timepoints=2.239000e+03, conv=1, iters=50, x=
+stepno=   69, timepoints=2.175000e+03, conv=0, iters=34, x=6.677276e-01 7.392740e-01 1.000001e+01 6.749019e-01 1.489959e+00 1.000001e+01 -7.875836e-03 
+stepno=   70, timepoints=2.303000e+03, conv=1, iters=50, x=
+stepno=   71, timepoints=2.239000e+03, conv=0, iters=34, x=6.677576e-01 7.393068e-01 1.000001e+01 6.783679e-01 1.489990e+00 1.000001e+01 -7.875808e-03 
+stepno=   72, timepoints=2.367000e+03, conv=1, iters=50, x=
+stepno=   73, timepoints=2.303000e+03, conv=0, iters=34, x=6.677858e-01 7.393375e-01 1.000001e+01 6.816252e-01 1.490019e+00 1.000001e+01 -7.875782e-03 
+stepno=   74, timepoints=2.431000e+03, conv=1, iters=50, x=
+stepno=   75, timepoints=2.367000e+03, conv=0, iters=34, x=6.678123e-01 7.393665e-01 1.000001e+01 6.846865e-01 1.490046e+00 1.000001e+01 -7.875757e-03 
+stepno=   76, timepoints=2.495000e+03, conv=1, iters=50, x=
+stepno=   77, timepoints=2.431000e+03, conv=0, iters=34, x=6.678372e-01 7.393936e-01 1.000001e+01 6.875636e-01 1.490072e+00 1.000001e+01 -7.875733e-03 
+stepno=   78, timepoints=2.559000e+03, conv=1, iters=50, x=
+stepno=   79, timepoints=2.495000e+03, conv=0, iters=34, x=6.678606e-01 7.394192e-01 1.000001e+01 6.902675e-01 1.490096e+00 1.000001e+01 -7.875712e-03 
+stepno=   80, timepoints=2.623000e+03, conv=1, iters=50, x=
+stepno=   81, timepoints=2.559000e+03, conv=0, iters=34, x=6.678826e-01 7.394432e-01 1.000001e+01 6.928087e-01 1.490119e+00 1.000001e+01 -7.875691e-03 
+stepno=   82, timepoints=2.687000e+03, conv=1, iters=50, x=
+stepno=   83, timepoints=2.623000e+03, conv=0, iters=34, x=6.679032e-01 7.394658e-01 1.000001e+01 6.951970e-01 1.490140e+00 1.000001e+01 -7.875672e-03 
+stepno=   84, timepoints=2.751000e+03, conv=1, iters=50, x=
+stepno=   85, timepoints=2.687000e+03, conv=0, iters=34, x=6.679227e-01 7.394870e-01 1.000001e+01 6.974416e-01 1.490160e+00 1.000001e+01 -7.875653e-03 
+stepno=   86, timepoints=2.815000e+03, conv=1, iters=50, x=
+stepno=   87, timepoints=2.751000e+03, conv=0, iters=34, x=6.679409e-01 7.395069e-01 1.000001e+01 6.995510e-01 1.490179e+00 1.000001e+01 -7.875636e-03 
+stepno=   88, timepoints=2.879000e+03, conv=1, iters=50, x=
+stepno=   89, timepoints=2.815000e+03, conv=0, iters=34, x=6.679581e-01 7.395256e-01 1.000001e+01 7.015335e-01 1.490197e+00 1.000001e+01 -7.875620e-03 
+stepno=   90, timepoints=2.943000e+03, conv=1, iters=50, x=
+stepno=   91, timepoints=2.879000e+03, conv=0, iters=34, x=6.679742e-01 7.395432e-01 1.000001e+01 7.033967e-01 1.490213e+00 1.000001e+01 -7.875605e-03 
+stepno=   92, timepoints=3.007000e+03, conv=1, iters=50, x=
+stepno=   93, timepoints=2.943000e+03, conv=0, iters=34, x=6.679893e-01 7.395598e-01 1.000001e+01 7.051478e-01 1.490229e+00 1.000001e+01 -7.875591e-03 
+stepno=   94, timepoints=3.071000e+03, conv=1, iters=50, x=
+stepno=   95, timepoints=3.007000e+03, conv=0, iters=34, x=6.680036e-01 7.395753e-01 1.000001e+01 7.067935e-01 1.490244e+00 1.000001e+01 -7.875578e-03 
+stepno=   96, timepoints=3.135000e+03, conv=1, iters=50, x=
+stepno=   97, timepoints=3.071000e+03, conv=0, iters=34, x=6.680170e-01 7.395899e-01 1.000001e+01 7.083401e-01 1.490257e+00 1.000001e+01 -7.875565e-03 
+stepno=   98, timepoints=3.199000e+03, conv=1, iters=50, x=
+stepno=   99, timepoints=3.135000e+03, conv=0, iters=34, x=6.680295e-01 7.396037e-01 1.000001e+01 7.097937e-01 1.490270e+00 1.000001e+01 -7.875554e-03 
+stepno=  100, timepoints=3.263000e+03, conv=1, iters=50, x=
+stepno=  101, timepoints=3.199000e+03, conv=0, iters=34, x=6.680414e-01 7.396166e-01 1.000001e+01 7.111598e-01 1.490283e+00 1.000001e+01 -7.875543e-03 
+stepno=  102, timepoints=3.327000e+03, conv=1, iters=50, x=
+stepno=  103, timepoints=3.263000e+03, conv=0, iters=34, x=6.680525e-01 7.396287e-01 1.000001e+01 7.124437e-01 1.490294e+00 1.000001e+01 -7.875532e-03 
+stepno=  104, timepoints=3.391000e+03, conv=1, iters=50, x=
+stepno=  105, timepoints=3.327000e+03, conv=0, iters=34, x=6.680629e-01 7.396401e-01 1.000001e+01 7.136503e-01 1.490305e+00 1.000001e+01 -7.875522e-03 
+stepno=  106, timepoints=3.455000e+03, conv=1, iters=50, x=
+stepno=  107, timepoints=3.391000e+03, conv=0, iters=34, x=6.680727e-01 7.396508e-01 1.000001e+01 7.147843e-01 1.490315e+00 1.000001e+01 -7.875513e-03 
+stepno=  108, timepoints=3.519000e+03, conv=1, iters=50, x=
+stepno=  109, timepoints=3.455000e+03, conv=0, iters=34, x=6.680820e-01 7.396609e-01 1.000001e+01 7.158500e-01 1.490324e+00 1.000001e+01 -7.875505e-03 
+stepno=  110, timepoints=3.583000e+03, conv=1, iters=50, x=
+stepno=  111, timepoints=3.519000e+03, conv=0, iters=34, x=6.680906e-01 7.396703e-01 1.000001e+01 7.168516e-01 1.490333e+00 1.000001e+01 -7.875497e-03 
+stepno=  112, timepoints=3.647000e+03, conv=1, iters=50, x=
+stepno=  113, timepoints=3.583000e+03, conv=0, iters=34, x=6.680988e-01 7.396792e-01 1.000001e+01 7.177930e-01 1.490342e+00 1.000001e+01 -7.875489e-03 
+stepno=  114, timepoints=3.711000e+03, conv=1, iters=50, x=
+stepno=  115, timepoints=3.647000e+03, conv=0, iters=34, x=6.681064e-01 7.396876e-01 1.000001e+01 7.186777e-01 1.490350e+00 1.000001e+01 -7.875482e-03 
+stepno=  116, timepoints=3.775000e+03, conv=1, iters=50, x=
+stepno=  117, timepoints=3.711000e+03, conv=0, iters=34, x=6.681136e-01 7.396955e-01 1.000001e+01 7.195091e-01 1.490357e+00 1.000001e+01 -7.875475e-03 
+stepno=  118, timepoints=3.839000e+03, conv=1, iters=50, x=
+stepno=  119, timepoints=3.775000e+03, conv=0, iters=34, x=6.681204e-01 7.397028e-01 1.000001e+01 7.202905e-01 1.490364e+00 1.000001e+01 -7.875469e-03 
+stepno=  120, timepoints=3.903000e+03, conv=1, iters=50, x=
+stepno=  121, timepoints=3.839000e+03, conv=0, iters=34, x=6.681267e-01 7.397098e-01 1.000001e+01 7.210249e-01 1.490371e+00 1.000001e+01 -7.875463e-03 
+stepno=  122, timepoints=3.967000e+03, conv=1, iters=50, x=
+stepno=  123, timepoints=3.903000e+03, conv=0, iters=34, x=6.681327e-01 7.397163e-01 1.000001e+01 7.217151e-01 1.490377e+00 1.000001e+01 -7.875457e-03 
+stepno=  124, timepoints=4.031000e+03, conv=1, iters=50, x=
+stepno=  125, timepoints=3.967000e+03, conv=0, iters=34, x=6.681383e-01 7.397224e-01 1.000001e+01 7.223637e-01 1.490383e+00 1.000001e+01 -7.875452e-03 
+stepno=  126, timepoints=4.095000e+03, conv=1, iters=50, x=
+stepno=  127, timepoints=4.031000e+03, conv=0, iters=34, x=6.681436e-01 7.397282e-01 1.000001e+01 7.229733e-01 1.490388e+00 1.000001e+01 -7.875447e-03 
+stepno=  128, timepoints=4.159000e+03, conv=1, iters=50, x=
+stepno=  129, timepoints=4.095000e+03, conv=0, iters=34, x=6.681485e-01 7.397336e-01 1.000001e+01 7.235462e-01 1.490393e+00 1.000001e+01 -7.875442e-03 
+stepno=  130, timepoints=4.223000e+03, conv=1, iters=50, x=
+stepno=  131, timepoints=4.159000e+03, conv=0, iters=34, x=6.681532e-01 7.397387e-01 1.000001e+01 7.240847e-01 1.490398e+00 1.000001e+01 -7.875438e-03 
+stepno=  132, timepoints=4.287000e+03, conv=1, iters=50, x=
+stepno=  133, timepoints=4.223000e+03, conv=0, iters=34, x=6.681576e-01 7.397435e-01 1.000001e+01 7.245907e-01 1.490403e+00 1.000001e+01 -7.875434e-03 
+stepno=  134, timepoints=4.351000e+03, conv=1, iters=50, x=
+stepno=  135, timepoints=4.287000e+03, conv=0, iters=34, x=6.681617e-01 7.397480e-01 1.000001e+01 7.250663e-01 1.490407e+00 1.000001e+01 -7.875430e-03 
+stepno=  136, timepoints=4.415000e+03, conv=1, iters=50, x=
+stepno=  137, timepoints=4.351000e+03, conv=0, iters=34, x=6.681656e-01 7.397522e-01 1.000001e+01 7.255133e-01 1.490411e+00 1.000001e+01 -7.875426e-03 
+stepno=  138, timepoints=4.479000e+03, conv=1, iters=50, x=
+stepno=  139, timepoints=4.415000e+03, conv=0, iters=34, x=6.681692e-01 7.397561e-01 1.000001e+01 7.259333e-01 1.490415e+00 1.000001e+01 -7.875423e-03 
+stepno=  140, timepoints=4.543000e+03, conv=1, iters=50, x=
+stepno=  141, timepoints=4.479000e+03, conv=0, iters=34, x=6.681726e-01 7.397599e-01 1.000001e+01 7.263281e-01 1.490418e+00 1.000001e+01 -7.875420e-03 
+stepno=  142, timepoints=4.607000e+03, conv=1, iters=50, x=
+stepno=  143, timepoints=4.543000e+03, conv=0, iters=34, x=6.681758e-01 7.397634e-01 1.000001e+01 7.266991e-01 1.490421e+00 1.000001e+01 -7.875417e-03 
+stepno=  144, timepoints=4.671000e+03, conv=1, iters=50, x=
+stepno=  145, timepoints=4.607000e+03, conv=0, iters=34, x=6.681788e-01 7.397667e-01 1.000001e+01 7.270478e-01 1.490424e+00 1.000001e+01 -7.875414e-03 
+stepno=  146, timepoints=4.735000e+03, conv=1, iters=50, x=
+stepno=  147, timepoints=4.671000e+03, conv=0, iters=34, x=6.681817e-01 7.397698e-01 1.000001e+01 7.273755e-01 1.490427e+00 1.000001e+01 -7.875411e-03 
+stepno=  148, timepoints=4.799000e+03, conv=1, iters=50, x=
+stepno=  149, timepoints=4.735000e+03, conv=0, iters=34, x=6.681843e-01 7.397727e-01 1.000001e+01 7.276835e-01 1.490430e+00 1.000001e+01 -7.875409e-03 
+stepno=  150, timepoints=4.863000e+03, conv=1, iters=50, x=
+stepno=  151, timepoints=4.799000e+03, conv=0, iters=34, x=6.681869e-01 7.397754e-01 1.000001e+01 7.279730e-01 1.490433e+00 1.000001e+01 -7.875407e-03 
+stepno=  152, timepoints=4.927000e+03, conv=1, iters=50, x=
+stepno=  153, timepoints=4.863000e+03, conv=0, iters=34, x=6.681892e-01 7.397780e-01 1.000001e+01 7.282450e-01 1.490435e+00 1.000001e+01 -7.875404e-03 
+stepno=  154, timepoints=4.991000e+03, conv=1, iters=50, x=
+stepno=  155, timepoints=4.927000e+03, conv=0, iters=34, x=6.681914e-01 7.397804e-01 1.000001e+01 7.285007e-01 1.490437e+00 1.000001e+01 -7.875402e-03 
+stepno=  156, timepoints=5.055000e+03, conv=1, iters=50, x=
+stepno=  157, timepoints=4.991000e+03, conv=0, iters=34, x=6.681935e-01 7.397827e-01 1.000001e+01 7.287410e-01 1.490440e+00 1.000001e+01 -7.875400e-03 
+stepno=  158, timepoints=5.119000e+03, conv=1, iters=50, x=
+stepno=  159, timepoints=5.055000e+03, conv=0, iters=34, x=6.681955e-01 7.397848e-01 1.000001e+01 7.289668e-01 1.490442e+00 1.000001e+01 -7.875399e-03 
+stepno=  160, timepoints=5.183000e+03, conv=1, iters=50, x=
+stepno=  161, timepoints=5.119000e+03, conv=0, iters=34, x=6.681973e-01 7.397868e-01 1.000001e+01 7.291790e-01 1.490443e+00 1.000001e+01 -7.875397e-03 
+stepno=  162, timepoints=5.247000e+03, conv=1, iters=50, x=
+stepno=  163, timepoints=5.183000e+03, conv=0, iters=34, x=6.681990e-01 7.397887e-01 1.000001e+01 7.293784e-01 1.490445e+00 1.000001e+01 -7.875395e-03 
+stepno=  164, timepoints=5.311000e+03, conv=1, iters=50, x=
+stepno=  165, timepoints=5.247000e+03, conv=0, iters=34, x=6.682006e-01 7.397905e-01 1.000001e+01 7.295659e-01 1.490447e+00 1.000001e+01 -7.875394e-03 
+stepno=  166, timepoints=5.375000e+03, conv=1, iters=50, x=
+stepno=  167, timepoints=5.311000e+03, conv=0, iters=34, x=6.682022e-01 7.397921e-01 1.000001e+01 7.297421e-01 1.490449e+00 1.000001e+01 -7.875392e-03 
+stepno=  168, timepoints=5.439000e+03, conv=1, iters=50, x=
+stepno=  169, timepoints=5.375000e+03, conv=0, iters=34, x=6.682036e-01 7.397937e-01 1.000001e+01 7.299076e-01 1.490450e+00 1.000001e+01 -7.875391e-03 
+stepno=  170, timepoints=5.503000e+03, conv=1, iters=50, x=
+stepno=  171, timepoints=5.439000e+03, conv=0, iters=34, x=6.682049e-01 7.397952e-01 1.000001e+01 7.300632e-01 1.490451e+00 1.000001e+01 -7.875390e-03 
+stepno=  172, timepoints=5.567000e+03, conv=1, iters=50, x=
+stepno=  173, timepoints=5.503000e+03, conv=0, iters=34, x=6.682062e-01 7.397965e-01 1.000001e+01 7.302095e-01 1.490453e+00 1.000001e+01 -7.875389e-03 
+stepno=  174, timepoints=5.631000e+03, conv=1, iters=50, x=
+stepno=  175, timepoints=5.567000e+03, conv=0, iters=34, x=6.682074e-01 7.397978e-01 1.000001e+01 7.303469e-01 1.490454e+00 1.000001e+01 -7.875387e-03 
+stepno=  176, timepoints=5.695000e+03, conv=1, iters=50, x=
+stepno=  177, timepoints=5.631000e+03, conv=0, iters=34, x=6.682085e-01 7.397991e-01 1.000001e+01 7.304761e-01 1.490455e+00 1.000001e+01 -7.875386e-03 
+stepno=  178, timepoints=5.759000e+03, conv=1, iters=50, x=
+stepno=  179, timepoints=5.695000e+03, conv=0, iters=34, x=6.682096e-01 7.398002e-01 1.000001e+01 7.305975e-01 1.490456e+00 1.000001e+01 -7.875385e-03 
+stepno=  180, timepoints=5.823000e+03, conv=1, iters=50, x=
+stepno=  181, timepoints=5.759000e+03, conv=0, iters=34, x=6.682105e-01 7.398013e-01 1.000001e+01 7.307116e-01 1.490457e+00 1.000001e+01 -7.875384e-03 
+stepno=  182, timepoints=5.887000e+03, conv=1, iters=50, x=
+stepno=  183, timepoints=5.823000e+03, conv=0, iters=34, x=6.682115e-01 7.398023e-01 1.000001e+01 7.308188e-01 1.490458e+00 1.000001e+01 -7.875384e-03 
+stepno=  184, timepoints=5.951000e+03, conv=1, iters=50, x=
+stepno=  185, timepoints=5.887000e+03, conv=0, iters=34, x=6.682123e-01 7.398033e-01 1.000001e+01 7.309196e-01 1.490459e+00 1.000001e+01 -7.875383e-03 
+stepno=  186, timepoints=6.015000e+03, conv=1, iters=50, x=
+stepno=  187, timepoints=5.951000e+03, conv=0, iters=34, x=6.682132e-01 7.398042e-01 1.000001e+01 7.310143e-01 1.490460e+00 1.000001e+01 -7.875382e-03 
