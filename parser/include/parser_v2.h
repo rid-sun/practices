@@ -96,9 +96,9 @@ public:
     Boolean isCon(int conNum);
 
     void printMessage(ofstream &outFile, int conNum);
-    void genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, int nameNum, unordered_map<int, double>& pre_u, double stepsize, double capval, AnalysisType _type, int MNAName, int& nonlinear_count);
+    void genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, int nameNum, vector<double>& pre_u, double stepsize, double capval, AnalysisType _type, int MNAName, int& nonlinear_count);
     void genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum1, int nameNum2, int datum, int lastnode, int MNAName, double stepsize, double capval, AnalysisType _type, int& nonlinear_count);
-    int genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, unordered_map<int, double>& pre_x, double stepsize, double indval, AnalysisType _type);
+    int genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, vector<double>& pre_x, double stepsize, double indval, AnalysisType _type);
     int genKVLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int datum, int lastnode, double stepsize, double indval, AnalysisType _type);
 
 private:
@@ -126,7 +126,7 @@ public:
     void connect(int conNumIn, Component *compIn);
 
     void printMessage(ofstream &outFile);
-    void genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, unordered_map<int, double>& pre_u, double stepsize, double capval, AnalysisType _type, Boolean isMNA);
+    void genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, vector<double>& pre_u, double stepsize, double capval, AnalysisType _type, Boolean isMNA);
     void genKCLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<double>& X, int nameNum2, int datum, int lastnode, Boolean isMNA, double stepsize, double capval, AnalysisType _type);
 
 private:
@@ -245,7 +245,7 @@ private:
 
 };
 
-void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step, unordered_map<int, double>& pre_u, unordered_map<int, double>& pre_i, double capval, double indval, double stepsize, AnalysisType _type);
+void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step, vector<double>& pre_x, double capval, double indval, double stepsize, AnalysisType _type);
 
 void parseNetList(Netlist &netlist, string &inFileName, string &outFileName);
 

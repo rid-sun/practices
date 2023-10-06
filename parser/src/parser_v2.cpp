@@ -21,7 +21,7 @@
  * @param indval 伪瞬态分析中插入的伪电感值
  * @param stepsize 伪瞬态分析的数值积分步长
  */
-void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step, unordered_map<int, double>& pre_u, unordered_map<int, double>& pre_i, double capval, double indval, double stepsize, AnalysisType _type) {
+void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList, vector<double> &F_x, vector<double> &X, vector<vector<double>> &JAC, string &outFileName, int datum, int lastnode, int step, vector<double>& pre_x, double capval, double indval, double stepsize, AnalysisType _type) {
     vector<int> MNANodeSet1, MNANodeSet2; // 用来存储那些补偿方程的编号，比如x5-vcc是F(5)，x5-x2-v1是F(5)
     ofstream outFile;
     Node *nodePtr, *nodePtr1, *nodePtr2;
@@ -36,11 +36,11 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
         }
     }
    
-    // 1. 扫描器件链表，若有电压源存在，则列KVL方程【如果是ptran，则不列kvl，改换方程设置】 且 记录MNA节点编号
+    // 1. 扫描器件链表，若有电压源存在，则列KVL方程【如果是ptran，则列超节点的kcl，改换方程设置】 且 记录MNA节点编号
     comp = compList.getComp(0);
     while(comp != NULL) {
         if(comp->getType() == VSource) {
-            int t = comp->genKVLEquation(outFile, F_x, X, datum, lastnode, pre_i, stepsize, indval, _type);
+            int t = comp->genKVLEquation(outFile, F_x, X, datum, lastnode, pre_x, stepsize, indval, _type);
             MNANodeSet1.push_back(t);
         }
         comp = comp->getNext();
@@ -55,7 +55,7 @@ void generateMatrix(NodeHead &nodeList, CompHead &compList, ModelHead &modelList
                 if(MNANodeSet1[i] == nodePtr->getNameNum())
                     isExist = TRUE;
             }
-            nodePtr->genKCLEquation(outFile, F_x, X, datum, lastnode, pre_u, stepsize, capval, _type, isExist);
+            nodePtr->genKCLEquation(outFile, F_x, X, datum, lastnode, pre_x, stepsize, capval, _type, isExist);
         }
         nodePtr = nodePtr->getNext();
     }
@@ -764,7 +764,7 @@ void Component::printMessage(ofstream &outFile, int conNum){
  * @param nameNum 节点编号（为该节点生成方程）
  * @param MNAName 记录未知电流变量编号
  */
-void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, int nameNum, unordered_map<int, double>& pre_u, double stepsize, double capval, AnalysisType _type, int MNAName, int& nonlinear_count) {
+void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, int nameNum, vector<double>& pre_u, double stepsize, double capval, AnalysisType _type, int MNAName, int& nonlinear_count) {
     int actualName = MNAName == NA ? nameNum : MNAName;
     switch (type) {
     case MOSFET:
@@ -789,14 +789,9 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
         }
         // 如果是ptran，那么节点都要插入伪电容，但要注意，如果它链接了多个非线性器件，只插入一次就行
         if (_type == DC_PTran && nonlinear_count == 0) {
-            if (MNAName == NA) { // 非补偿方程节点相关
-                F_x[fx_bjt] += capval / stepsize * (X[fx_bjt] - pre_u[nameNum]);
-                outFile << " + C / h * (x(" << (fx_bjt >= datum ? fx_bjt + 1 : fx_bjt) << ") - x(" << (fx_bjt >= datum ? fx_bjt + 1 : fx_bjt) << "'))";
-            } else {
-                int newid = nameNum > datum ? nameNum - 1 : nameNum;
-                F_x[fx_bjt] += capval / stepsize * (X[newid] - pre_u[nameNum]);
-                outFile << " + C / h * (x(" << (newid >= datum ? newid + 1 : newid) << ") - x(" << (newid >= datum ? newid + 1 : newid) << "'))";
-            }
+            int newid = nameNum > datum ? nameNum - 1 : nameNum;
+            F_x[fx_bjt] += capval / stepsize * (X[newid] - pre_u[newid]);
+            outFile << " + C / h * (x(" << nameNum << ") - x(" << nameNum << "'))";
         }
         nonlinear_count++;
     }
@@ -883,7 +878,7 @@ void Component::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<do
  * @param nameNum 节点编号（为该节点生成方程）
  * @param MNAName 记录未知电流变量编号
  */
-int Component::genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, unordered_map<int, double>& pre_x, double stepsize, double indval, AnalysisType _type) {
+int Component::genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, vector<double>& pre_x, double stepsize, double indval, AnalysisType _type) {
     int fx_0 = con0.conNum > datum ? con0.conNum - 1 : con0.conNum, fx_1 = con1.conNum > datum ? con1.conNum - 1 : con1.conNum;
     if (_type == DC_NR) {
         if(con0.conNum != datum && con1.conNum != datum) {
@@ -904,19 +899,20 @@ int Component::genKVLEquation(ofstream &outFile, vector<double> &F_x, vector<dou
     } else if (_type == DC_PTran) {
         // 在电压源正极节点串联插入电感
         // F_x[fx_0] = -pre_x + stepsize / indval * (value + X[fx_1] - X[fx_0]) + X[lastnode + this->getcompNum()]
+        int newid = lastnode + this->getcompNum() > datum ? lastnode + this->getcompNum() - 1 : lastnode + this->getcompNum();
         if(con0.conNum != datum && con1.conNum != datum) { // 
-            F_x[fx_0] += -pre_x[lastnode + this->getcompNum()] + stepsize / indval * (value + X[fx_1] - X[fx_0]) + X[lastnode + this->getcompNum()];
+            F_x[fx_0] += -pre_x[newid] + stepsize / indval * (value + X[fx_1] - X[fx_0]) + X[newid];
             outFile << "F(" << con0.conNum << ") = -x(" << lastnode + this->getcompNum() << "') + h / L * (" << this->getName() << " + x(" << con0.conNum << ") - x(" << con1.conNum << ")) + x(" << lastnode + this->getcompNum() << ")" << endl;
             return con0.conNum;
         }
         else if(con0.conNum != datum && con1.conNum == datum) {
-            F_x[fx_0] += -pre_x[lastnode + this->getcompNum()] + stepsize / indval * (value - X[fx_0]) - X[lastnode + this->getcompNum()];
+            F_x[fx_0] += -pre_x[newid] + stepsize / indval * (value - X[fx_0]) + X[newid];
             outFile << "F(" << con0.conNum << ") = -x(" << lastnode + this->getcompNum() << "') + h / L * (" << this->getName() << " - x(" << con0.conNum << ")) + x(" << lastnode + this->getcompNum() << ")" << endl;
             return con0.conNum;
         }
         else if(con0.conNum == datum && con1.conNum != datum) { // 一般这种情况不会发生，不会把正极接地的
-            F_x[fx_1] += -pre_x[lastnode + this->getcompNum()] + stepsize / indval * (value - X[fx_1]) - X[lastnode + this->getcompNum()];
-            outFile << "F(" << con1.conNum << ") = -x(" << lastnode + this->getcompNum() << "') + h / L * (" << this->getName() << " - x(" << con1.conNum << ")) + x(" << lastnode + this->getcompNum() << ")" << endl;
+            F_x[fx_1] += -pre_x[newid] + stepsize / indval * (value - X[fx_1]) - X[newid];
+            outFile << "F(" << con1.conNum << ") = -x(" << lastnode + this->getcompNum() << "') + h / L * (" << this->getName() << " - x(" << con1.conNum << ")) - x(" << lastnode + this->getcompNum() << ")" << endl;
             return con1.conNum;
         }
     }
@@ -955,26 +951,27 @@ int Component::genKVLJAC(ofstream &outFile, vector<vector<double>> &JAC, vector<
     } else if (_type == DC_PTran) {
         // 在电压源正极节点串联插入电感
         // F_x[fx_0] = -pre_x + stepsize / indval * (value + X[fx_1] - X[fx_0]) + X[lastnode + this->getcompNum()]
+        int newid = lastnode + this->getcompNum() > datum ? lastnode + this->getcompNum() - 1 : lastnode + this->getcompNum();
         if(con0.conNum != datum && con1.conNum != datum) {
             JAC[x0][x0] -= stepsize / indval;
             JAC[x0][x1] += stepsize / indval;
-            JAC[x0][lastnode + this->getcompNum()] += 1;
-            outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = - stepsize / indval" << endl;
-            outFile << "JAC(" << con0.conNum << "," << con1.conNum << ") = stepsize / indval" << endl;
+            JAC[x0][newid] += 1;
+            outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = - h / L" << endl;
+            outFile << "JAC(" << con0.conNum << "," << con1.conNum << ") = h / L" << endl;
             outFile << "JAC(" << con0.conNum << "," << lastnode + this->getcompNum() << ") = + 1" << endl;
             return con0.conNum;
         }
         else if(con0.conNum != datum && con1.conNum == datum) {
             JAC[x0][x0] -= stepsize / indval;
-            JAC[x0][lastnode + this->getcompNum()] += 1;
-            outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = - stepsize / indval" << endl;
+            JAC[x0][newid] += 1;
+            outFile << "JAC(" << con0.conNum << "," << con0.conNum << ") = - h / L" << endl;
             outFile << "JAC(" << con0.conNum << "," << lastnode + this->getcompNum() << ") = + 1" << endl;
             return con0.conNum;
         }
         else if(con0.conNum == datum && con1.conNum != datum) {
             JAC[x1][x1] += stepsize / indval;
-            JAC[x1][lastnode + this->getcompNum()] += 1;
-            outFile << "JAC(" << con1.conNum << "," << con1.conNum << ") = + stepsize / indval" << endl;
+            JAC[x1][newid] += 1;
+            outFile << "JAC(" << con1.conNum << "," << con1.conNum << ") = + h / L" << endl;
             outFile << "JAC(" << con1.conNum << "," << lastnode + this->getcompNum() << ") = + 1" << endl;
             return con1.conNum;
         }
@@ -1294,7 +1291,7 @@ void Node::printMessage(ofstream &outFile){
  * @param lastnode 最大节点编号
  * @param isMNA 是否是MNA节点
  */
-void Node::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, unordered_map<int, double>& pre_u, double stepsize, double capval, AnalysisType _type, Boolean isMNA) {
+void Node::genKCLEquation(ofstream &outFile, vector<double> &F_x, vector<double>& X, int datum, int lastnode, vector<double>& pre_u, double stepsize, double capval, AnalysisType _type, Boolean isMNA) {
     int VSourceID = NA;
     Connections *conList = getConList();
     // TODO：这里假设了本节点只连接了一个电压源来处理的，后续若有问题再做处理

@@ -9,51 +9,56 @@ namespace evaluation{
     vector<double> x_axis_data;
     vector<vector<double>> y_axis_data;
     
+    // 链表相关
     NodeHead nodeList; // 注意，这里并不是引用类型，所以在初始化值的时候，他其实是网表对应内容的一块“复制品”
     CompHead compList;  // 换言之，如果改变这里的对象内容，并不会对网表实体中的内容造成任何的影响
     ModelHead modelList;
     // Netlist netlist;
 
-    // 分析求解相关
-    vector<double> lamda;
+    // NR & homotopy 分析求解相关
+    double lambda, homostep = 0.05;
+    const double Shomostepratio = 2;
+    const double Fhomostepratio = 0.125;
+    const double minhomostep = 1e-9;
+    const double ERRORGAP = 1e-4;
+    const int ITERATIONNUMS = 20;
+    const int maxSolve = 1e6;
     vector<double> F_X, X, X_n;
-    vector<double> G, a; // 同伦法相关使用的变量
+    vector<double> G, a;
     vector<vector<double>> JAC;
 #ifdef USE_EIGEN_SJT
     Eigen::MatrixXd _JAC, _G;
     Eigen::VectorXd _F_X, _X, _X_n, _a;
 #endif
 
-    // Ptran相关
-    unordered_map<int, double> pre_u, pre_i;
+    // Ptran 分析求解相关
     const double capval = 0.1, indval = 0.1;
-    const int maxNR = 10;
-    const double minstep = 0.0001;
+    const int maxNR = 50;
+    const double initstep = 1.1;
+    const double minstep = 1e-9;
     const double endstep = 1e20;
     const char *outpath = "ptran.txt";
-
+    
+    // 其它变量
     string outFileName, title;
     int datum, lastnode, step, total;
     double tran_stop, tran_initialVal;
     double tran_step;
-    AnalysisType analysisType;
-
-    const int ITERATIONNUMS = 15;
+    AnalysisType _type;
     const int RANDOM_MIN = 333333, RANDOM_MAX = 999999;
-    const double ERRORGAP = 0.0001;
-    Boolean isSuccess = FALSE;
 
-    int plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step);
-    void test_aq(vector<double>& X, vector<double>& a);
+    // 关键函数
+    void preparation(Netlist &netlist, string outFileName);
+    void analysisProcess();
     void tranProcess();
     void newtonRaphson();
     void newtonIterHomo();
-    double getNorm(vector<double>& X, vector<double>& X_n);
 #ifdef USE_EIGEN_SJT
     void ptran();
 #endif
-    void analysisProcess();
-    void preparation(Netlist &netlist, string outFileName);
+    bool checkPtran(vector<double>& X, vector<double>& X_n);
+    void test_aq(vector<double>& X, vector<double>& a);
+    int plot(vector<double> X, vector<vector<double>> Y, string x_name, string y_name, string title, int step);
 }
 
 // 初始化命名空间内的变量及做一些预处理
@@ -67,7 +72,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     evaluation::outFileName = outFileName;
     tran_stop = netlist.getTranStop();
     tran_step = 1e-3;
-    analysisType = netlist.getAnalysisType();
+    _type = netlist.getAnalysisType();
     title = netlist.getTitle();
 
     // 预处理，初始化方程矩阵、雅克比矩阵等
@@ -93,7 +98,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
 
     for (int i = 0; i < total - 1;i++) {
         X[i] = distr(engine) * 1.0 / 1000000; // 给X变量赋初值，随机选取初值
-        a[i] = X[i];
+        a[i] = X[i] = 0;
     }
     fill(F_X.begin(), F_X.end(), 0);
     for (int i = 0; i < total - 1;i++){
@@ -105,6 +110,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
 #ifdef USE_EIGEN_SJT
     for (int i = 0; i < total - 1;i++) {
         _a(i) = _X(i) = distr(engine) * 1.0 / 1000000; // 给X变量赋初值，随机选取初值
+        _a(i) = _X(i) = 0;
     }
     _F_X.setZero();
     _JAC.setZero();
@@ -112,10 +118,7 @@ void evaluation::preparation(Netlist &netlist, string outFileName) {
     _G.diagonal().setConstant(1e-3);
 #endif
 
-    lamda.resize(11);
-    for (int i = 0; i <= 10;i++) {
-        lamda[i] = i * 1.0 / 10;
-    }
+    lambda = 0;
 }
 
 // 牛顿迭代过程
@@ -147,12 +150,13 @@ void evaluation::newtonRaphson() {
     // cout << endl;
 
     // 2. 牛顿迭代开始
+    Boolean isSuccess = FALSE;
     for (int i = 0; i < ITERATIONNUMS; i++) {
         cout << endl
              << "     the beginning of " << i + 1 << "th iteration=========================" << endl;
 
         // 2.1 求出jacobian、F（X）等
-        generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1, pre_u, pre_i, capval, indval, 1, DC_NR);
+        generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, i + 1, X, capval, indval, 1, DC_NR);
 
         // for (int i = 0; i < total - 1; i++) {
         //     for (int j = 0; j < total - 1; j++)
@@ -243,44 +247,9 @@ void evaluation::newtonRaphson() {
 // 同伦法求解过程
 void evaluation::newtonIterHomo() {
 
-    // 测试，赋予一定的初值
-    test_aq(X, a);
-
 #ifdef USE_EIGEN_SJT
     _a = Eigen::Map<Eigen::VectorXd>(a.data(), a.size());
 #endif
-
-    // 注意电压源引入补偿方程的初值是确定的
-    // 2023/7/30 add：而且还需明确，只有一端接地，才能直接赋值的
-    Component *tempComp = compList.getComp(0);
-    while(tempComp != NULL) {
-        if(tempComp->getType() == VSource) {
-            // if(tempComp->getConVal(0) != datum) {// 这里的设定有点糙
-            //     X[tempComp->getConVal(0)] = tempComp->getVal();
-            //     a[tempComp->getConVal(0)] = tempComp->getVal();
-            // }   
-            // else {
-            //     X[tempComp->getConVal(1)] = tempComp->getVal();
-            //     a[tempComp->getConVal(1)] = tempComp->getVal();
-            // }
-            int x1 = tempComp->getConVal(1) > datum ? tempComp->getConVal(1) - 1 : tempComp->getConVal(1);
-            int x0 = tempComp->getConVal(0) > datum ? tempComp->getConVal(0) - 1 : tempComp->getConVal(0);
-            if(tempComp->getConVal(0) == datum) {
-                X[x1] = tempComp->getVal();
-                a[x1] = tempComp->getVal();
-            }   
-            else if(tempComp->getConVal(1) == datum) {
-                X[x0] = tempComp->getVal();
-                a[x0] = tempComp->getVal();
-            }
-                
-        }
-        tempComp=tempComp->getNext();
-    }
-    
-    // for (int i = 0; i < X.size(); i++) {
-    //     cout << X[i] << " ";
-    // }
 
     // 对要绘图的量进行清空
     x_axis_data.clear();
@@ -288,106 +257,151 @@ void evaluation::newtonIterHomo() {
     y_axis_data.resize(total - 1);
 
     // 开始同伦法求解迭代
-    for (int i = 1; i <= 10;i++) {
-        cout << endl
-             << "lamda = " << lamda[i] << " iteration---" << endl;
+    int solvenums = 0, NR_num = 0;
+    bool homosuccess = false;
+    for (int h = 0; h < total - 1; h++) {
+        X[h] = 0;
+    }
+    while (true) {
+        if (solvenums > maxSolve) break;
+        if (homostep < minhomostep) break;
+        solvenums++;
         step = 1;
+        for (int h = 0; h < total - 1; h++) {
+            X_n[h] = X[h];
+            fill(JAC[h].begin(), JAC[h].end(), 0);
+            F_X[h] = 0;
+        }
         while(step < ITERATIONNUMS) {
-            cout << endl
-                 << "     step " << step << "th iteration ---" << endl;
-            Boolean isSuccess = TRUE;
-            
+
             // 1. 计算jacobian矩阵 和 F_X
-            generateMatrix(nodeList, compList, modelList, F_X, X, JAC, outFileName, datum, lastnode, step, pre_u, pre_i, capval, indval, 1, DC_NR);
-            // for (int i = 0; i < total - 1; i++) {
-            //     for (int j = 0; j < total - 1; j++)
-            //         cout << "J(" << i << "," << j << ") = " << JAC[i][j] << " ";
-            //     cout << endl;
-            // }
+            generateMatrix(nodeList, compList, modelList, F_X, X_n, JAC, outFileName, datum, lastnode, step, X, capval, indval, 1, _type);
         
         #ifndef USE_EIGEN_SJT
             // 2. 计算H(x, λ) 【这里可能需要再前面得先进行一次求解FX】
             // H(x, λ) = (1 - λ)G(x - a) + λF(x)
             for (int x = 0; x < total - 1; x++) {
-                X_n[x] = (1 - lamda[i]) * (1e-3) * (X[x] - a[x]) + lamda[i] * F_X[x];
+                F_X[x] = (1 - lambda) * (1e-3) * (X_n[x] - a[x]) + lambda * F_X[x];
                 for (int y = 0; y < total - 1; y++) {
-                    JAC[x][y] = lamda[i] * JAC[x][y] + (x == y ? (1 - lamda[i]) * 1e-3 : 0);
-                }
-                if(abs(X_n[x]) > ERRORGAP) { // 注意这个误差的处理
-                    isSuccess = FALSE;
+                    JAC[x][y] = lambda * JAC[x][y] + (x == y ? (1 - lambda) * 1e-3 : 0);
                 }
             }
-            if(isSuccess == TRUE) break;
             
             // 3. 迭代下一个解
             // 3.1 JAC矩阵求逆
             LU_decomposition(JAC);
 
             // 3.2 求解下一个解
-            vector<double> temp(X_n);
+            Boolean isSuccess = TRUE;
             for (int x = 0; x < total - 1; x++) {
                 double t = 0;
                 for (int y = 0; y < total - 1; y++) {
-                    t += JAC[x][y] * temp[y];
+                    t += JAC[x][y] * F_X[y];
                 }
-                X_n[x] = X[x] - t;
+                X_n[x] = X_n[x] - t;
+                if (t > ERRORGAP) {
+                    isSuccess = FALSE;
+                }
+            }
+            // 3.3 判断是否收敛
+            if (isSuccess == TRUE) {
+                for (int h = 0; h < total - 1; h++) {
+                    X[h] = X_n[h];
+                }
+                break;
             }
 
             // 4. 重置 and 赋值
             for (int h = 0; h < total - 1; h++) {
-                X[h] = X_n[h];
                 fill(JAC[h].begin(), JAC[h].end(), 0);
                 F_X[h] = 0;
             }
         #else
             for (size_t hh = 0; hh < F_X.size(); ++hh) {
                 _F_X(hh) = F_X[hh];
-                _X(hh) = X[hh];
+                _X_n(hh) = X_n[hh];
             }
             // _F_X = Eigen::Map<Eigen::VectorXd>(F_X.data(), F_X.size());
             // _X = Eigen::Map<Eigen::VectorXd>(X.data(), X.size());
             // _JAC = Eigen::Map<Eigen::MatrixXd>(&(JAC[0][0]), JAC.size(), JAC[0].size()); // 这种赋值方式感觉会出错，因为地址是不连续的码？
+            // H(x, λ) = (1 - λ)G(x - a) + λF(x)
             for (size_t hh = 0; hh < JAC.size(); ++hh) {
                 for (size_t kk = 0; kk < JAC[0].size(); ++kk) {
-                    _JAC(hh, kk) = lamda[i] * JAC[hh][kk] + (hh == kk ? (1 - lamda[i]) * 1e-3 : 0);
+                    _JAC(hh, kk) = lambda * JAC[hh][kk] + (hh == kk ? (1 - lambda) * 1e-3 : 0);
                 }
             }
-            // cout << _F_X << "----" << endl << _X << "----" << endl << _JAC << endl;
+            // cout << _F_X << "----" << endl << _X_n << "----" << endl << _JAC << endl;
 
-            // _X = _X - _JAC.colPivHouseholderQr().solve(_F_X);
+            _F_X = (1 - lambda) * _G * (_X_n - _a) + lambda * _F_X;
 
-            _X_n = (1 - lamda[i]) * _G * (_X - _a) + lamda[i] * _F_X;
-
-            if (_X_n.norm() < ERRORGAP) break;
+            // _X = _X_n - _JAC.colPivHouseholderQr().solve(_F_X);
 
             _JAC = _JAC.inverse();
 
-            _X = _X - _JAC * _X_n;
+            _X = _X_n - _JAC * _F_X;
+
+            if ((_X_n - _X).norm() < ERRORGAP) {
+                for (int h = 0; h < total - 1; h++) {
+                    X[h] = _X(h);
+                }
+                break;
+            }
 
             for (int h = 0; h < total - 1; h++) {
-                X[h] = _X(h);
+                X_n[h] = _X(h);
                 fill(JAC[h].begin(), JAC[h].end(), 0);
                 F_X[h] = 0;
             }
         #endif
-            cout << endl
-                 << "     step " << step << "th iteration end.----" << endl;
+
             step++;
         }
         cout << endl
-             << "================the end of lamda = " << lamda[i] << " iteration=============================" << endl;
-        
+             << "lambda=" << lambda << ", NRConv=" << (step == ITERATIONNUMS ? 1 : 0) << ", Iters=" << step << endl;
+
         // 设置要绘图的量
-        x_axis_data.push_back(lamda[i]);
-        for (int j = 0, h = 0; j < total - 1; j++) {
-            y_axis_data[h++].push_back(X[j]);
+        if (step < ITERATIONNUMS) {
+            x_axis_data.push_back(lambda);
+            for (int j = 0, h = 0; j < total - 1; j++) {
+                y_axis_data[h++].push_back(X[j]);
+            }
+        }
+        NR_num += step;
+        if (lambda == 1 && step < ITERATIONNUMS) {
+            homosuccess = true;
+            break;
+        }
+
+        // lambda控制
+        if (step < ITERATIONNUMS / 2) {
+            homostep *= Shomostepratio;
+            lambda += homostep;
+            if (lambda > 1) {
+                homostep = 1 - lambda + homostep;
+                lambda = 1;
+            }
+        } else if (step < ITERATIONNUMS) {
+            lambda += homostep;
+            if (lambda > 1) {
+                homostep = 1 - lambda + homostep;
+                lambda = 1;
+            }
+        } else {
+            lambda -= homostep;
+            homostep *= Fhomostepratio;
+            lambda += homostep;
         }
     }
 
-    cout << endl
-         << "========================vector x is followings: ==========================" << endl;
-    for (int i = 0; i < total - 1; i++){
-        cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
+    if (homosuccess) {
+        cout << endl << "NR_nums=" << NR_num << endl
+             << "========================vector x is followings: ==========================" << endl;
+        for (int i = 0; i < total - 1; i++){
+            cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
+        }
+    } else {
+        cout << endl
+             << "======================== homotopy Failed ==========================" << endl;
     }
 
     // 开始绘图
@@ -402,10 +416,11 @@ void evaluation::newtonIterHomo() {
 // ptran过程
 void evaluation::ptran() {
     fill(X.begin(), X.end(), 0);
-    double stepsize = 1;
+    double stepsize = initstep;
     double total_steps = 0;
     bool conv = true;
     int stepno = 0;
+    int NR_nums = 0;
     while (true) {
         // 0. 限制数值积分求解次数，超过则视为ptran求解不收敛
         stepno++;
@@ -422,10 +437,6 @@ void evaluation::ptran() {
         }
 
         // 1. 先保留当前时间步的X的初值
-        for (int i = 0; i < datum; i++)
-            pre_i[i] = pre_u[i] = X[i];
-        for (int i = datum; i < X.size(); i++)
-            pre_i[i + 1] = pre_u[i + 1] = X[i];
         fill(X_n.begin(), X_n.end(), 0);
         // X_n[0] = 0.7, X_n[1] = 0.6, X_n[2] = 10, X_n[3] = 0.7, X_n[4] = 1.5, X_n[5] = 10, X_n[6] = -0.004, X_n[7] = -0.0021;
         fill(F_X.begin(), F_X.end(), 0);
@@ -435,8 +446,8 @@ void evaluation::ptran() {
         // 2. 在当前时刻开始NR迭代求解
         bool isSuccess = false;
         int iters = 0;
-        for (iters = 0; iters < maxNR * 5; iters++) {
-            generateMatrix(nodeList, compList, modelList, F_X, X_n, JAC, outFileName, datum, lastnode, iters + 1, pre_u, pre_i, capval, indval, stepsize, DC_PTran);
+        for (iters = 0; iters < maxNR; iters++) {
+            generateMatrix(nodeList, compList, modelList, F_X, X_n, JAC, outFileName, datum, lastnode, iters + 1, X, capval, indval, stepsize, _type);
             for (size_t hh = 0; hh < F_X.size(); ++hh) { // 赋值
                 _F_X(hh) = F_X[hh];
                 _X(hh) = X_n[hh];
@@ -459,7 +470,8 @@ void evaluation::ptran() {
                 break;
             }
         }
-        
+        NR_nums += iters;
+
         // 3. 记录信息
         FILE *fp = fopen(outpath, "a+");
         if (fp == NULL) {
@@ -478,11 +490,14 @@ void evaluation::ptran() {
         // 4. 步长处理
         if (!isSuccess) {
             total_steps -= stepsize; // 回退
-            stepsize /= 2;
+            stepsize /= 8;
         } else {
-            stepsize *= 2;
-            if (getNorm(X, X_n) <= ERRORGAP) {
+            if (iters < 25)
+                stepsize *= 2;
+            if (checkPtran(X, X_n)) {
                 conv = true;
+                for (int i = 0; i < X.size(); i++)
+                    X[i] = X_n[i];
                 break;
             }
             for (int i = 0; i < X.size(); i++)
@@ -492,7 +507,7 @@ void evaluation::ptran() {
 
     // 收敛
     if (conv) {
-        cout << endl
+        cout << endl << "NR_nums=" << NR_nums << endl
             << "========================vector x is followings: ==========================" << endl;
         for (int i = 0; i < total - 1; i++){
             cout << "X[" << (i >= datum ? i + 1 : i) << "] = " << X[i] << "      ";
@@ -570,7 +585,7 @@ void evaluation::tranProcess() {
 
 // 分析过程的入口
 void evaluation::analysisProcess() {
-    switch (analysisType) {
+    switch (_type) {
     case TRAN:
         tranProcess();
         break;
@@ -590,12 +605,16 @@ void evaluation::analysisProcess() {
     }
 }
 
-double evaluation::getNorm(vector<double>& X, vector<double>& X_n) {
-    double t = 0;
+bool evaluation::checkPtran(vector<double>& X, vector<double>& X_n) {
+    // double t = 0;
+    // for (int i = 0; i < X.size(); i++) {
+    //     t += (X[i] - X_n[i]) * (X[i] - X_n[i]);
+    // }
+    // return sqrt(t) < ERRORGAP;
     for (int i = 0; i < X.size(); i++) {
-        t += (X[i] - X_n[i]) * (X[i] - X_n[i]);
+        if (abs(X[i] - X_n[i]) >= ERRORGAP) return false;
     }
-    return sqrt(t);
+    return true;
 }
 
 void evaluation::test_aq(vector<double> &X, vector<double> &a) {
